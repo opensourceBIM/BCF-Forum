@@ -7,6 +7,13 @@ Version: 1.0
 Author: Bastiaan Grutters
 Author URI: http://www.bastiaangrutters.nl
 Usage: 
+Using shortcodes:
+[showIssues]
+[showIssue]
+[showAddZipForm]
+[showAddIssueForm]
+
+Or using php functions in templates:
 <?php
 if( class_exists( 'TNOBCFManagement' ) ) {
 	// Show list of issues for this user
@@ -19,7 +26,7 @@ if( class_exists( 'TNOBCFManagement' ) ) {
 	TNOBCFManagement::showAddIssueForm();
 }
 ?>
- */
+*/
 
 class TNOBCFManagement {
 	private $options;
@@ -39,6 +46,12 @@ class TNOBCFManagement {
 		add_action( 'admin_menu', Array( 'TNOBCFManagement', 'addOptionsMenu' ) );
 		// Add post types etc at the WordPress init action
 		add_action( 'init', Array( 'TNOBCFManagement', 'wordPressInit' ) );
+		
+		// --- Add shortcodes --- 
+		add_shortcode( 'showIssues', Array( 'TNOBCFManagement', 'showIssues' ) );
+		add_shortcode( 'showIssue', Array( 'TNOBCFManagement', 'showIssue' ) );
+		add_shortcode( 'showAddZipForm', Array( 'TNOBCFManagement', 'showAddZipForm' ) );
+		add_shortcode( 'showAddIssueForm', Array( 'TNOBCFManagement', 'showAddIssueForm' ) );
 	}
 	
 	public static function wordPressInit() {
@@ -129,18 +142,24 @@ class TNOBCFManagement {
 			<table>
 				<tr>
 					<th>&nbsp;</th>
-					<th>Issue</th>
-					<th>Revisie</th>
-					<th>Project</th>
+					<th><?php _e( 'Issue' ); ?></th>
+					<th><?php _e( 'Date' ); ?></th>
+					<th><?php _e( 'Author' ); ?></th>
+					<th><?php _e( 'Revision' ); ?></th>
+					<th><?php _e( 'Project' ); ?></th>
 				</tr>
 <?php 
 			foreach( $myIssues as $issue ) {
 				$revision = get_post_meta( $issue->ID, 'revision', true );
 				$project = get_post_meta( $issue->ID, 'project', true );
+				$author = get_post_meta( $issue->ID, 'Author', true );
+				$timestamp = strtotime( $issue->post_date );
 ?>
 				<tr class="<?php print( $index % 2 == 0 ? 'even' : 'odd' ); ?>">
 					<td><?php print( get_the_post_thumbnail( $issue->ID, 'issue-list-thumb' ) ); ?></td>
 					<td><a href="<?php print( get_bloginfo( 'wpurl' ) . $options[ 'issue_details_uri' ] . '?id=' . $issue->ID );  ?>"><?php print( $issue->post_title ); ?></a></<td>
+					<td><?php print( date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp ) ); ?></<td>
+					<td><?php print( $author == '' ? '-' : $author ); ?></<td>
 					<td><?php print( $revision == '' ? '-' : $revision ); ?></<td>
 					<td><?php print( $project == '' ? '-' : $project ); ?></<td>
 				</tr>
@@ -159,21 +178,53 @@ class TNOBCFManagement {
 	
 	public static function showIssue() {
 		//print( "showIssue()<br />" );
+		global $post;
 		$issueId = ( isset( $_GET[ 'id' ] ) && ctype_digit( $_GET[ 'id' ] ) ) ? $_GET[ 'id' ] : -1;
+		if( $issueId == -1 && isset( $post ) && isset( $post->ID ) ) {
+			// if no id is supplied we assume the current post is the issue we want to display
+			$issueId = $post->ID;
+		}
 		if( $issueId != -1 ) {
+			$options = TNOBCFManagement::getOptions();
 			$currentUserId = get_current_user_id();
 			$issue = get_post( $issueId );
-			if( $issue->post_author == $currentUserId ) {
-				
+			if( $issue->post_author == $currentUserId && $issue->post_type == $options[ 'bcf_issue_post_type' ] ) {
+				$revision = get_post_meta( $issue->ID, 'revision', true );
+				$project = get_post_meta( $issue->ID, 'project', true );
+				$author = get_post_meta( $issue->ID, 'Author', true );
+				$verbalStatus = get_post_meta( $issue->ID, 'VerbalStatus', true );
+				$status = get_post_meta( $issue->ID, 'Status', true );
+				$timestamp = strtotime( $issue->post_date );
 ?>
 			<div class="issue-image"><?php print( get_the_post_thumbnail( $issueId, 'issue-detail-thumb' ) ); ?></div>
 			<h3><?php print( $issue->post_title ); ?></h3>
+			<p class="the-comment"><?php print( get_post_meta( $issue->ID, 'comment', true ) ); ?></p>
 			<table>
-<?php 
-?>
-
-<?php
-?>			
+				<tr>
+					<td><?php _e( 'Date' ); ?></td>
+					<td><?php print( date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp ) ); ?></td>
+				</tr>
+				<tr>
+					<td><?php _e( 'Author' ); ?></td>
+					<td><?php print( $author != '' ? $author : '-' );  ?></td>
+				</tr>
+				<tr>
+					<td><?php _e( 'Revision' ); ?></td>
+					<td><?php print( $revision != '' ? $revision : '-' );  ?></td>
+				</tr>
+				<tr>
+					<td><?php _e( 'Project' ); ?></td>
+					<td><?php print( $project != '' ? $project : '-' );  ?></td>
+				</tr>
+				<tr>
+					<td><?php _e( 'Verbal status' ); ?></td>
+					<td><?php print( $verbalStatus != '' ? $verbalStatus : '-' );  ?></td>
+				</tr>
+				<tr>
+					<td><?php _e( 'Status' ); ?></td>
+					<td><?php print( $status != '' ? $status : '-' );  ?></td>
+				</tr>
+				
 			</table>
 <?php
 			} else {
@@ -294,15 +345,35 @@ class TNOBCFManagement {
 				'post_status' => 'publish',
 				'post_author' => $currentUserId
 			);
+		if( isset( $markup[ 'Comment' ] ) && isset( $markup[ 'Comment' ][ 'Date' ] ) ) {
+			$date = strtotime( $markup[ 'Comment' ][ 'Date' ] );
+			$postData[ 'post_date' ] = date( 'Y-m-d H:i:s', $date );
+		}
 		$postId = wp_insert_post( $postData );
 		if( $postId > 0 ) {
 			// Store XML stuff in post meta
 			add_post_meta( $postId, 'markup', $markup, true );
+			
+			// Set some information for easier access/filtering
+			if( isset( $markup[ 'Comment' ] ) ) {
+				if( isset( $markup[ 'Comment' ][ 'VerbalStatus' ] ) ) {
+					add_post_meta( $postId, 'VerbalStatus', $markup[ 'Comment' ][ 'VerbalStatus' ], true );
+				}
+				if( isset( $markup[ 'Comment' ][ 'Status' ] ) ) {
+					add_post_meta( $postId, 'Status', $markup[ 'Comment' ][ 'Status' ], true );
+				}
+				if( isset( $markup[ 'Comment' ][ 'Author' ] ) ) {
+					add_post_meta( $postId, 'Author', $markup[ 'Comment' ][ 'Author' ], true );
+				}
+				if( isset( $markup[ 'Comment' ][ 'Comment' ] ) ) {
+					add_post_meta( $postId, 'Comment', $markup[ 'Comment' ][ 'Comment' ], true );
+				}
+			}
 			foreach( $viewpoints as $viewpoint ) {
 				add_post_meta( $postId, 'viewpoint', $viewpoint, false );
 			}
 			
-			// TODO: Could set some values to filter on for this issue
+			// TODO: Could set some more values to filter on for this issue
 			
 			// TODO: If a project is set, we check if it exists, then link it otherwise we
 			 
@@ -318,6 +389,11 @@ class TNOBCFManagement {
 		} else {
 			return false;
 		}
+	}
+	
+	// TODO: Should make a single function for adding issues used by other parts of the import
+	private static function addIssue( $postData, $metaData ) {
+
 	}
 	
 	private static function writeSnapshot( $postId, $snapshot, $first = false ) {
@@ -401,6 +477,10 @@ class TNOBCFManagement {
 			$tnoBCFManagement->options = get_option( 'tno_bcf_management_options', Array() );
 		}
 		return $tnoBCFManagement->options;
+	}
+	
+	public static function handleAPICall( $interface, $method, $paramters = Array() ) {
+		
 	}
 }
 
