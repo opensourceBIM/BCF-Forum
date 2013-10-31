@@ -46,6 +46,8 @@ class TNOBCFManagement {
 		add_action( 'admin_menu', Array( 'TNOBCFManagement', 'addOptionsMenu' ) );
 		// Add post types etc at the WordPress init action
 		add_action( 'init', Array( 'TNOBCFManagement', 'wordPressInit' ) );
+		// Add script files
+		add_action( 'wp_enqueue_scripts', Array( 'TNOBCFManagement', 'enqueueScripts' ) );
 		
 		// --- Add shortcodes --- 
 		add_shortcode( 'showIssues', Array( 'TNOBCFManagement', 'showIssues' ) );
@@ -114,12 +116,14 @@ class TNOBCFManagement {
 		
 		// Add image sizes for the issue list and details pages
 		add_theme_support( 'post-thumbnails' );
-		add_image_size( 'issue-list-thumb', 120, 80 ); 
+		add_image_size( 'issue-list-thumb', 90, 60 ); 
 		add_image_size( 'issue-detail-thumb', 400, 300 );
 	}
 	
 	public static function addOptionsMenu() {
-		add_options_page( 'TNO BCF Management Options', 'TNO BCF Management', 'activate_plugins', 'tno_bcf_management_options', Array( 'TNOBCFManagement', 'showOptionsPage' ) );
+		add_options_page( 'TNO BCF Management Options', 'TNO BCF Management', 
+			'activate_plugins', 'tno_bcf_management_options', 
+			Array( 'TNOBCFManagement', 'showOptionsPage' ) );
 	}
 	
 	public static function showOptionsPage() {
@@ -139,7 +143,7 @@ class TNOBCFManagement {
 		if( count( $myIssues ) > 0 ) {
 			$index = 0;
 ?>
-			<table>
+			<table class="issue-table">
 				<tr>
 					<th>&nbsp;</th>
 					<th><?php _e( 'Issue' ); ?></th>
@@ -166,12 +170,12 @@ class TNOBCFManagement {
 <?php
 				$index ++;
 			}
-?>				
+?>
 			</table>
 <?php
 		} else {
 ?>
-			<p>Je hebt nog geen BCF issues.</p>
+			<p><?php _e( 'No BCF issues imported yet' ); ?></p>
 <?php
 		}
 	}
@@ -199,7 +203,7 @@ class TNOBCFManagement {
 			<div class="issue-image"><?php print( get_the_post_thumbnail( $issueId, 'issue-detail-thumb' ) ); ?></div>
 			<h3><?php print( $issue->post_title ); ?></h3>
 			<p class="the-comment"><?php print( get_post_meta( $issue->ID, 'comment', true ) ); ?></p>
-			<table>
+			<table class="issue-table">
 				<tr>
 					<td><?php _e( 'Date' ); ?></td>
 					<td><?php print( date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp ) ); ?></td>
@@ -229,12 +233,12 @@ class TNOBCFManagement {
 <?php
 			} else {
 ?>
-			<p>Je kunt enkel issues bekijken die je zelf hebt ingesteld</p>
+			<p><?php _e( 'Issue not accessible' ); ?></p>
 <?php
 			}
 		} else {
 ?>
-			<p>Geen issue gekozen</p>
+			<p><?php _e( 'No issue selected' ); ?></p>
 <?php
 		}
 	}
@@ -242,7 +246,7 @@ class TNOBCFManagement {
 	public static function showAddZipForm() {
 		if( isset( $_FILES[ 'bcf_zip_file' ] ) ) {
 			if( isset( $_FILES[ 'bcf_zip_file' ][ 'error' ] ) && $_FILES[ 'bcf_zip_file' ][ 'error' ] != 0 ) {
-				$errorMessage = 'Could not upload the file, contact a system administrator. Error code: ' . $_FILES[ 'bcf_zip_file' ][ 'error' ];
+				$errorMessage = __( 'Could not upload the file, contact a system administrator.' ) . ' Error code: ' . $_FILES[ 'bcf_zip_file' ][ 'error' ];
 			}
 			if( !isset( $errorMessage ) ) {
 				$errorMessage = '';
@@ -267,7 +271,19 @@ class TNOBCFManagement {
 						if( !in_array( $guid, $guids ) ) {
 							if( count( $files ) > 1 ) {
 								// Import this XML
-								$errorMessage .= TNOBCFManagement::addIssueFromZip( $files );
+								if( !TNOBCFManagement::addIssueFromZip( $files ) ) {
+									$filesError = __( 'Error at import' ) . ' (guid: ' . $guid . ', files: ';
+									$firstFile = true;
+									foreach( $files as $file ) {
+										if( !$firstFile ) {
+											$filesError .= ', ';
+										} else {
+											$firstFile = false;
+										}
+										$filesError .= $file[1];
+									}
+									$errorMessage .= $filesError;
+								}
 								$files = Array();
 							}
 							$guids[] = $guid;
@@ -279,7 +295,7 @@ class TNOBCFManagement {
 					}
 					zip_close( $zip );
 				} else {
-					$errorMessage = 'Could not open the zip archive. Error code: ' . $zip;
+					$errorMessage = __( 'Could not open the zip archive.' ) . ' Error code: ' . $zip;
 				}
 			}
 			
@@ -289,14 +305,84 @@ class TNOBCFManagement {
 <?php
 			}
 		}
+		
+		$options = TNOBCFManagement::getOptions();
+		$unsetIssues = get_posts( Array(
+				'post_type' => $options[ 'bcf_issue_post_type' ],
+				'posts_per_page' => -1,
+				'author' => get_current_user_id(),
+				'meta_query' => Array(
+						Array(
+								'key' => 'import_status',
+								'value' => 'pending'
+						)
+				)
+		) );
+
+		if( count( $unsetIssues ) > 0 ) {
+?>
+				<h3><?php _e( 'Some issues are not linked to revisions and/or projects' ); ?></h3>
+				<table class="issue-table" id="update-issue-revision-table">
+					<tr>
+						<th>&nbsp;</th>
+						<th><?php _e( 'Issue' ); ?></th>
+						<th><?php _e( 'Date' ); ?></th>
+						<th><?php _e( 'Author' ); ?></th>
+						<th><?php _e( 'Project' ); ?></th>
+						<th><?php _e( 'Revision' ); ?></th>
+					</tr>
+<?php
+			$index = 0;
+			foreach( $unsetIssues as $unsetIssue ) {
+				$revision = get_post_meta( $unsetIssue->ID, 'revision', true );
+				$project = get_post_meta( $unsetIssue->ID, 'project', true );
+				$author = get_post_meta( $unsetIssue->ID, 'Author', true );
+				$timestamp = strtotime( $unsetIssue->post_date );
+?>
+					<tr class="issue-pending <?php print( $index % 2 == 0 ? 'even' : 'odd' ); ?>" id="issue-<?php print( $unsetIssue->ID ); ?>">
+						<td><?php print( get_the_post_thumbnail( $unsetIssue->ID, 'issue-list-thumb' ) ); ?></td>
+						<td><a href="<?php print( get_bloginfo( 'wpurl' ) . $options[ 'issue_details_uri' ] . '?id=' . $unsetIssue->ID );  ?>" target="_blank"><?php print( $unsetIssue->post_title ); ?></a></td>
+						<td><?php print( date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp ) ); ?></td>
+						<td><?php print( $author == '' ? '-' : $author ); ?></td>
+						<td class="project"><?php print( $project == '' ? '' : $project ); ?></td>
+						<td class="revision"><?php print( $revision == '' ? '' : $revision ); ?></td>
+					</tr>
+<?php
+				$index ++;
+			}
+			$bimsieServers = TNOBCFManagement::getBimsieServers();
+?>
+				</table>
+				<script type="text/javascript">
+					var tnoBCFManagementSettings = {
+						ajaxURI: "<?php print( plugins_url( 'ajax-handler.php' , __FILE__ ) ); ?>",
+						loadingImage: "<img src=\"<?php bloginfo( 'wpurl' ); ?>/wp-admin/images/loading.gif\" alt=\"loading...\" />",
+						bimsieServers: <?php print( json_encode( $bimsieServers ) ); ?>,
+						text: {
+							selectServerTitle: "<?php _e( 'Select a BIMsie server or enter a new one' ); ?>",
+							newServerLabel: "<?php _e( 'Add BIMSie server URI' ); ?>",
+							submitServer: "<?php _e( 'Connect' ); ?>",
+							selectServerLabel: "<?php _e( 'Select BIMSie server' ); ?>",
+							noServerOption: "--- <?php _e( 'New server' ); ?> ---",
+							rememberServerLabel: "<?php _e( 'Remember user' ); ?>",
+							serverUserLabel: "<?php _e( 'Username' ); ?>",
+							serverPasswordLabel: "<?php _e( 'Password' ); ?>",
+							serverSubmitError: "<?php _e( 'Supply a BIMSie server URI, username and password or select one from your list.' ); ?>",
+							noProjectsFoundMessage: "<?php _e( 'No projects could be found on this BIMSie server for this user.' ); ?>"
+						}
+					};
+				</script>
+<?php
+		} else {
 ?>
 			<form method="post" action="" enctype="multipart/form-data">
-				<label for="bcf-zip-file">Select a BCF zip archive</label><br />
+				<label for="bcf-zip-file"><?php _e( 'Select a BCF zip archive' ); ?></label><br />
 				<input type="file" id="bcf-zip-file" name="bcf_zip_file" /><br />
 				<br />
-				<input type="submit" value="toevoegen" />
+				<input type="submit" value="<?php _e( 'Add' ); ?>" />
 			</form>
 <?php
+		}
 	}
 	
 	private static function addIssueFromZip( $files ) {
@@ -351,6 +437,9 @@ class TNOBCFManagement {
 		}
 		$postId = wp_insert_post( $postData );
 		if( $postId > 0 ) {
+			// Set post meta so we know this issue has yet to be attached to a project/revision
+			add_post_meta( $postId, 'import_status', 'pending', true );			
+
 			// Store XML stuff in post meta
 			add_post_meta( $postId, 'markup', $markup, true );
 			
@@ -375,7 +464,14 @@ class TNOBCFManagement {
 			
 			// TODO: Could set some more values to filter on for this issue
 			
-			// TODO: If a project is set, we check if it exists, then link it otherwise we
+			// If a project is set, add it as post meta
+			if( $project !== false ) {
+				// TODO: this should be set, but could check it to be sure
+				add_post_meta( $postId, 'ProjectId', $project[ '@attributes' ][ 'ProjectId' ], true );
+				if( isset( $project[ 'Name' ] ) ) {
+					add_post_meta( $postId, 'ProjectName', $project[ 'Name' ], true );
+				}
+			}
 			 
 			// Add snapshots as attachments (first one is the thumbnail!)
 			$first = true;
@@ -479,8 +575,68 @@ class TNOBCFManagement {
 		return $tnoBCFManagement->options;
 	}
 	
-	public static function handleAPICall( $interface, $method, $paramters = Array() ) {
-		
+	public static function enqueueScripts() {
+		wp_enqueue_style( 'tno-bcf-management', plugins_url( '/tno-bcf-management.css' , __FILE__ ) );
+		// TODO: maybe I should only add this on certain pages and not everywhere? Think about it!
+		wp_enqueue_script( 'tno-bcf-management', plugins_url( '/tno-bcf-management.js' , __FILE__ ), Array( 'jquery' ), '1.0.0', true );
+	}
+	
+	public static function getBimsieServers( $excludeAuthInfo = true ) {
+		$bimsieServers = get_user_meta( get_current_user_id(), 'bimsie-servers' );
+		if( $excludeAuthInfo ) {
+			$servers = Array();
+			foreach( $bimsieServers as $bimsieServer ) {
+				$servers[] = Array( 'uri' => $bimsieServer[ 'uri' ], 'remember' => $bimsieServer[ 'remember' ], 'username' => $bimsieServer[ 'username' ] );
+			}
+			return $servers;
+		} else {
+			return $bimsieServers;
+		}
+	}
+	
+	public static function bimsieAPIRequest( $uri, $token = false, $interface, $method, $parameters = Array() ) {
+		if( function_exists( 'curl_version' ) ) {
+			$curlResource = curl_init();
+			$postData = Array( 
+				'request' => Array( 
+					'interface' => $interface,
+					'method' => $method,
+					'parameters' => $parameters
+			) );
+			// If a token is supplied set it here
+			if( isset( $token ) && $token !== false ) {
+				$postData[ 'token' ] = $token;
+			}
+			// TODO: Have to check if we always need to end in json for json requests
+			// What does the standard say
+			if( strtolower( substr( $uri, strlen( $uri ) - 4 ) ) != 'json' ) {
+				if( strtolower( substr( $uri, strlen( $uri ) - 1 ) ) != '/' ) {
+					$uri .= '/';
+				}
+				$uri .= 'json';
+			}
+			curl_setopt( $curlResource, CURLOPT_URL, $uri );
+			curl_setopt( $curlResource, CURLOPT_HEADER, 0 );
+			curl_setopt( $curlResource, CURLOPT_HTTPHEADER, Array( 'Content-type: application/json; charset=UTF-8' ) );
+			curl_setopt( $curlResource, CURLOPT_POST, true );
+			curl_setopt( $curlResource, CURLOPT_RETURNTRANSFER, true );
+			curl_setopt( $curlResource, CURLOPT_POSTFIELDS, json_encode( $postData ) );
+			$result = curl_exec( $curlResource );
+			$result = json_decode( $result );
+			// Return json if valid, null if not json
+			return $result;
+		} else {
+			print( 'This plugin requires cURL to be enabled, contact a system administrator about this.' );
+			return null;
+		}
+	}
+	
+	public static function getBimsieErrorMessage( $bimsieResponse ) {
+		if( is_array( $bimsieResponse ) && is_array( $bimsieResponse[ 'response' ] ) && is_array( $bimsieResponse[ 'response' ][ 'exception' ] ) && isset( $bimsieResponse[ 'response' ][ 'exception' ][ 'message' ] ) ) {
+			return $bimsieResponse[ 'response' ][ 'exception' ][ 'message' ];
+		} else {
+			return false;
+		}
 	}
 }
 

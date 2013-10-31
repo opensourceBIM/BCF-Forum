@@ -52,10 +52,10 @@ if( isset( $request ) ) {
 ?>
 <html>
 	<head>
-		<title>BIMSie API implementation with BCF extention</title>
+		<title>BIMSie API implementation with BCF extension</title>
 	</head>
 	<body>
-		<h1>BIMSie API implementation with BCF extention</h1>
+		<h1>BIMSie API implementation with BCF extension</h1>
 		Supported method:<br />
 		<ul><li>JSON</li></ul>
 		Supported functions:<br />
