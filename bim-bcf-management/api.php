@@ -3,20 +3,16 @@ include( '../../../wp-config.php' );
 
 // TODO: add functions and implement functions
 $supportedCalls = Array(
-//		 'Bimsie1AuthInterface' => Array( 
+	'Bimsie1AuthInterface' => Array(
 //		 		'login',
 //		 		'logout',
-//				'getAccessMethod',
-//		 ),
-		);
+		'getAccessMethod',
+	),
+);
 
-if( $_SERVER[ 'REQUEST_METHOD' ] == 'POST' ) {
-	$input = $_POST;
-} else {
-	$input = $_GET;
-}
-if( isset( $input[ 'request' ] ) ) {
-	$request = json_decode( $input[ 'request' ], true );
+$input = file_get_contents( 'php://input' );
+if( isset( $input ) && $input != '' ) {
+	$request = json_decode( $input, true );
 }
 
 if( isset( $request ) ) {
@@ -28,7 +24,7 @@ if( isset( $request ) ) {
 				&& in_array( $request[ 'request' ][ 'method' ], $supportedCalls[$request[ 'request' ][ 'interface' ]] ) ) {
 			if( $request[ 'request' ][ 'interface' ] == 'Bimsie1AuthInterface' ) {
 				if( $request[ 'request' ][ 'method' ] == 'getAccessMethod' ) {
-					$response = Array( 'supported_methods' => 'JSON' );
+					$response = Array( 'response' => Array( 'result' => 'JSON' ) );
 				}
 			}
 			
@@ -46,7 +42,7 @@ if( isset( $request ) ) {
 			print( 'Unsupported interface or method, check supported methods by browsing to: ' . plugins_url( 'api.php', __FILE__ ) );
 		}
 	} else {
-		print( 'Invalid request paramaters. Supply your request parameters in this format: { "request": { "interface": "","method": "","parameters": {} } }' );
+		print( 'Invalid request paramaters. Supply your request parameters in this format: {"request":{"interface":"","method":"","parameters":{}}}' );
 	}
 } else {
 ?>
@@ -81,7 +77,7 @@ if( isset( $request ) ) {
 		</ul>
 		<h2>How to use</h2>
 		Supply a JSON encoded string as request parameter, POST or GET are both supported, like:<br />
-		request={ "request": { "interface": "","method": "","parameters": {} } }
+		<?php print( plugins_url( 'api.php', __FILE__ ) ); ?>?{"request":{"interface":"Bimsie1AuthInterface","method":"getAccessMethod","parameters":{}}}
 	</body>
 </html>
 <?php

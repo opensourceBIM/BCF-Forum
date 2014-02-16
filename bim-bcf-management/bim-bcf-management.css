@@ -8,7 +8,11 @@ body {
 	display: none;
 }
 
-#tno-bcf-management-overlay {
+.clear {
+	clear: both;
+}
+
+#bim-bcf-management-overlay {
 	position: absolute;
 	width: 720px;
 	height: 480px;
@@ -21,7 +25,7 @@ body {
 	font-family: arial;
 }
 
-#tno-bcf-management-overlay .title {
+#bim-bcf-management-overlay .title {
 	background-color: #999;
 	border-bottom: 1px solid #888;
 	line-height: 28px;
@@ -30,23 +34,23 @@ body {
 	text-align: center;
 }
 
-#tno-bcf-management-overlay .status {
+#bim-bcf-management-overlay .status {
 	font-weight: bold;
 	padding: 10px 20px 5px;
 	color: #AE181D;
 }
 
-#tno-bcf-management-overlay .content {
+#bim-bcf-management-overlay .content {
 	padding: 5px 20px;
 }
 
-#tno-bcf-management-overlay .content label {
+#bim-bcf-management-overlay .content label {
 	float: left;
-	width: 150px;
+	width: 180px;
 	padding-right: 10px;
 	padding-bottom: 5px;
 }
 
-#tno-bcf-management-overlay .content input, #tno-bcf-management-overlay .content select {
+#bim-bcf-management-overlay .content input, #bim-bcf-management-overlay .content select {
 	margin-bottom: 5px;
 }
