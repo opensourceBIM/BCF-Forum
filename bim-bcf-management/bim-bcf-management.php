@@ -156,8 +156,19 @@ class BIMBCFManagement {
 				</tr>
 <?php
 			foreach( $myIssues as $issue ) {
-				$revision = get_post_meta( $issue->ID, 'revision', true );
-				$project = get_post_meta( $issue->ID, 'project', true );
+				$projects = get_post_meta( $issue->ID, 'project' );
+				$projectNames = '';
+				$revisions = '';
+				foreach( $projects as $project ) {
+					if( $projectNames != '' ) {
+						$projectNames .= ', ';
+					}
+					$projectNames .= $project[ 'name' ];
+					if( $revisions != '' ) {
+						$revisions .= ', ';
+					}
+					$revisions .= $project[ 'revision' ];
+				}
 				$author = get_post_meta( $issue->ID, 'Author', true );
 				$timestamp = strtotime( $issue->post_date );
 ?>
@@ -166,8 +177,8 @@ class BIMBCFManagement {
 					<td><a href="<?php print( get_bloginfo( 'wpurl' ) . $options[ 'issue_details_uri' ] . '?id=' . $issue->ID );  ?>"><?php print( $issue->post_title ); ?></a></<td>
 					<td><?php print( date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp ) ); ?></<td>
 					<td><?php print( $author == '' ? '-' : $author ); ?></<td>
-					<td><?php print( $revision == '' ? '-' : $revision ); ?></<td>
-					<td><?php print( $project == '' ? '-' : $project ); ?></<td>
+					<td><?php print( $revisions == '' ? '-' : $revisions ); ?></<td>
+					<td><?php print( $projectNames == '' ? '-' : $projectNames ); ?></<td>
 				</tr>
 <?php
 				$index ++;
@@ -195,8 +206,19 @@ class BIMBCFManagement {
 			$currentUserId = get_current_user_id();
 			$issue = get_post( $issueId );
 			if( $issue->post_author == $currentUserId && $issue->post_type == $options[ 'bcf_issue_post_type' ] ) {
-				$revision = get_post_meta( $issue->ID, 'revision', true );
-				$project = get_post_meta( $issue->ID, 'project', true );
+				$projects = get_post_meta( $issue->ID, 'project' );
+				$projectNames = '';
+				$revisions = '';
+				foreach( $projects as $project ) {
+					if( $projectNames != '' ) {
+						$projectNames .= ', ';
+					}
+					$projectNames .= $project[ 'name' ];
+					if( $revisions != '' ) {
+						$revisions .= ', ';
+					}
+					$revisions .= $project[ 'revision' ];
+				}
 				$author = get_post_meta( $issue->ID, 'Author', true );
 				$verbalStatus = get_post_meta( $issue->ID, 'VerbalStatus', true );
 				$status = get_post_meta( $issue->ID, 'Status', true );
@@ -216,11 +238,11 @@ class BIMBCFManagement {
 				</tr>
 				<tr>
 					<td><?php _e( 'Revision', 'bim-bcf-management' ); ?></td>
-					<td><?php print( $revision != '' ? $revision : '-' );  ?></td>
+					<td><?php print( $revisions != '' ? $revisions : '-' );  ?></td>
 				</tr>
 				<tr>
 					<td><?php _e( 'Project', 'bim-bcf-management' ); ?></td>
-					<td><?php print( $project != '' ? $project : '-' );  ?></td>
+					<td><?php print( $projectNames != '' ? $projectNames : '-' );  ?></td>
 				</tr>
 				<tr>
 					<td><?php _e( 'Verbal status', 'bim-bcf-management' ); ?></td>
@@ -329,8 +351,8 @@ class BIMBCFManagement {
 					if( isset( $markup[ 'Header' ][ 'File' ] ) ) {
 						foreach( $markup[ 'Header' ][ 'File' ] as $file ) {
 							if( isset( $file[ '@attributes' ] ) && isset( $file[ '@attributes' ][ 'IfcProject' ] ) && $file[ '@attributes' ][ 'IfcProject' ] != '' ) {
-								if( !in_array( $file[ 'Filename' ] . ' - ' . $file[ '@attributes' ][ 'IfcProject' ], $projectIds ) ) {
-									$projectIds[] = $file[ 'Filename' ] . ' - ' . $file[ '@attributes' ][ 'IfcProject' ];
+								if( !in_array( $file[ 'Filename' ] . ', ifcProject: ' . $file[ '@attributes' ][ 'IfcProject' ], $projectIds ) ) {
+									$projectIds[] = $file[ 'Filename' ] . ', ifcProject: ' . $file[ '@attributes' ][ 'IfcProject' ];
 								}
 							}
 						}
@@ -338,7 +360,7 @@ class BIMBCFManagement {
 				}
 			}
 ?>
-				<h3><?php _e( 'Some issues are not linked to revisions and/or projects' ); ?></h3>
+				<h3><?php _e( 'Some issues are not linked to revisions and/or projects', 'bim-bcf-management' ); ?></h3>
 				<table class="issue-table" id="update-issue-revision-table">
 					<tr>
 						<th>&nbsp;</th>
@@ -352,8 +374,6 @@ class BIMBCFManagement {
 <?php
 			$index = 0;
 			foreach( $unsetIssues as $unsetIssue ) {
-				$revision = get_post_meta( $unsetIssue->ID, 'revision', true );
-				$project = get_post_meta( $unsetIssue->ID, 'project', true );
 				$author = get_post_meta( $unsetIssue->ID, 'Author', true );
 				$timestamp = strtotime( $unsetIssue->post_date );
 				$markups = get_post_meta( $unsetIssue->ID, 'markup' );
@@ -370,8 +390,8 @@ class BIMBCFManagement {
 						<td class="numeric"><?php print( $files ); ?></td>
 						<td><?php print( date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp ) ); ?></td>
 						<td><?php print( $author == '' ? '-' : $author ); ?></td>
-						<td class="project"><?php print( $project == '' ? '' : $project ); ?></td>
-						<td class="revision"><?php print( $revision == '' ? '' : $revision ); ?></td>
+						<td class="project"></td>
+						<td class="revision"></td>
 					</tr>
 <?php
 				$index ++;
@@ -396,7 +416,8 @@ class BIMBCFManagement {
 							serverUserLabel: "<?php _e( 'Username', 'bim-bcf-management' ); ?>",
 							serverPasswordLabel: "<?php _e( 'Password', 'bim-bcf-management' ); ?>",
 							serverSubmitError: "<?php _e( 'Supply a BIMSie server URI, username and password or select one from your list.', 'bim-bcf-management' ); ?>",
-							noProjectsFoundMessage: "<?php _e( 'No projects could be found on this BIMSie server for this user.', 'bim-bcf-management' ); ?>"
+							noProjectsFoundMessage: "<?php _e( 'No projects could be found on this BIMSie server for this user.', 'bim-bcf-management' ); ?>",
+							revision: "<?php _e( 'Revision', 'bim-bcf-management' ); ?>"
 						}
 					};
 				</script>
@@ -468,6 +489,9 @@ class BIMBCFManagement {
 			// Set post meta so we know this issue has yet to be attached to a project/revision
 			add_post_meta( $postId, 'import_status', 'pending', true );
 
+			
+			// Replace backslashes with slashes to prevent escape issues
+			$markup = str_replace( '\\', '/', $markup );
 			// Store XML stuff in post meta
 			add_post_meta( $postId, 'markup', $markup, true );
 
@@ -625,8 +649,17 @@ class BIMBCFManagement {
 			return $bimsieServers;
 		}
 	}
+	
+	public static function getBimsieServerById( $serverId ) {
+		$servers = BIMBCFManagement::getBimsieServers( false );
+		if( isset( $servers[$serverId] ) ) {
+			return $servers[$serverId];
+		} else {
+			return false;
+		}
+	}
 
-	public static function setProjectForPendingIssues( $projects ) {
+	public static function setProjectForPendingIssues( $projects, $projectNames = Array(), $revisions = Array() ) {
 		$options = BIMBCFManagement::getOptions();
 		$unsetIssues = get_posts( Array(
 				'post_type' => $options[ 'bcf_issue_post_type' ],
@@ -639,16 +672,20 @@ class BIMBCFManagement {
 						)
 				)
 		) );
+		
+		$projectsMissingRevisions = Array();
 
 		if( count( $unsetIssues ) > 0 ) {
 			$projectIds = Array();
+			$projectIdsCheck = Array();
 			foreach( $unsetIssues as $unsetIssue ) {
 				$markups = get_post_meta( $unsetIssue->ID, 'markup' );
 				foreach( $markups as $markup ) {
 					if( isset( $markup[ 'Header' ][ 'File' ] ) ) {
 						foreach( $markup[ 'Header' ][ 'File' ] as $file ) {
 							if( isset( $file[ '@attributes' ] ) && isset( $file[ '@attributes' ][ 'IfcProject' ] ) && $file[ '@attributes' ][ 'IfcProject' ] != '' ) {
-								if( !in_array( $file[ '@attributes' ][ 'IfcProject' ], $projectIds ) ) {
+								if( !in_array( $file[ '@attributes' ][ 'IfcProject' ] . $file[ 'Filename' ], $projectIdsCheck ) ) {
+									$projectIdsCheck[] = $file[ '@attributes' ][ 'IfcProject' ] . $file[ 'Filename' ];
 									$projectIds[] = $file[ '@attributes' ][ 'IfcProject' ];
 								}
 							}
@@ -656,11 +693,12 @@ class BIMBCFManagement {
 					}
 				}
 			}
-			$projectsMissingRevisions = Array();
-			// TODO: fill the array
+			// We fill this array with the projects where we have no revision yet
 			if( count( $projectIds ) == count( $projects ) ) { // This should match... how can it not?
 				foreach( $unsetIssues as $unsetIssue ) {
 					$markups = get_post_meta( $unsetIssue->ID, 'markup' );
+					delete_post_meta( $unsetIssue->ID, 'project' );
+					$issueDone = true;
 					foreach( $markups as $markup ) {
 						if( isset( $markup[ 'Header' ][ 'File' ] ) ) {
 							foreach( $markup[ 'Header' ][ 'File' ] as $file ) {
@@ -669,7 +707,12 @@ class BIMBCFManagement {
 										if( $value == $file[ '@attributes' ][ 'IfcProject' ] ) {
 											// We found the right project guid
 											// store the project oid for this issue
-											add_post_meta( $unsetIssue, 'project', Array( 'ifcProject' => $value, 'file' => $file[ 'Filename' ], 'oid' => $projects[$key], 'revision' => -1 ) );
+											// TODO: fix this so revisions get set properly for all issues
+											add_post_meta( $unsetIssue->ID, 'project', Array( 'ifcProject' => $value, 'file' => $file[ 'Filename' ], 'name' => isset( $projectNames[$key] ) ? $projectNames[$key] : '', 'oid' => $projects[$key], 'revision' => isset( $revisions[$key] ) ? $revisions[$key] : -1 ) );
+											if( !isset( $projectsMissingRevisions[$key] ) && ( !isset( $revisions[$key] ) || $revisions[$key] == '' || $revisions[$key] == -1 ) ) {
+												$issueDone = false;
+												$projectsMissingRevisions[$key] = Array( 'ifcProject' => $value, 'file' => $file[ 'Filename' ], 'oid' => $projects[$key], 'name' => isset( $projectNames[$key] ) ? $projectNames[$key] : '', 'revision' => isset( $revisions[$key] ) ? $revisions[$key] : -1 );
+											}
 											break 1;
 										}
 									}
@@ -677,10 +720,14 @@ class BIMBCFManagement {
 							}
 						}
 					}
+					// TODO: is this always correct? need to verify
+					if( $issueDone ) {
+						update_post_meta( $unsetIssue->ID, 'import_status', 'complete' );
+					}
 				}
 			}
-			return $projectsMissingRevisions;
 		}
+		return $projectsMissingRevisions;
 	}
 }
 

@@ -3,8 +3,11 @@ BIMBCFManagement = BIMBCFManagement.prototype = function() {};
 
 // Store the list of projects for a picked server in this global
 BIMBCFManagement.projectList = new Array();
-// Store the list of revisions for a picked project in this global
-BIMBCFManagement.revisionList = new Array();
+// Store the currently selected BIMsie server id
+BIMBCFManagement.serverId = -1;
+// Username and password remembered for now
+BIMBCFManagement.username = "";
+BIMBCFManagement.password = "";
 
 jQuery( document ).ready( function() {
 	if( document.getElementById( "update-issue-revision-table" ) ) {
@@ -29,11 +32,11 @@ BIMBCFManagement.issueUpdate = function() {
 };
 
 BIMBCFManagement.showRevisionList = function() {
-	if( BIMBCFManagement.revisionList.length > 0 ) {
+	//if( BIMBCFManagement.revisionList.length > 0 ) {
 		// TODO: Show dropdown with revisions
-	} else {
+	//} else {
 		// TODO: project does not contain revisions or no project selected, handle it here
-	}
+	//}
 };
 
 BIMBCFManagement.showProjectList = function() {
@@ -43,29 +46,66 @@ BIMBCFManagement.showProjectList = function() {
 		overlay.find( ".title" ).html( bimBCFManagementSettings.text.selectProjectTitle );
 		var html = "";
 		for( var p = 0; p < bimBCFManagementSettings.ifcProjects.length; p ++ ) {
-			html += "<label for=\"project-" + p + "\">" + bimBCFManagementSettings.ifcProjects[p] + "</label><br />";
+			html += "<div class=\"project\"><label class=\"wide-label\" for=\"project-" + p + "\">" + bimBCFManagementSettings.ifcProjects[p] + "</label><div class=\"clear\"></div>";
 			html += "<select id=\"project-" + p + "\" class=\"select-project\"><option value=\"\"> - </option>";
 			for( var i = 0; i < BIMBCFManagement.projectList.length; i ++ ) {
 				html += "<option value=\"" + BIMBCFManagement.projectList[i].oid + "\">" + BIMBCFManagement.projectList[i].name + "</option>";
 			}
-			html += "</select><br /><br />";
+			html += "</select></div>";
 		}
 		html += "<input type=\"button\" value=\"submit\" id=\"submit-project-link\" />";
 		overlay.find( ".content" ).html( html );
+		jQuery( ".select-project" ).change( function() {
+			jQuery( this ).parent().find( ".revisions" ).remove();
+		} );
 		jQuery( "#submit-project-link" ).click( function() {
+			// TODO: check if we are submitting revisions or projects
+			var revisions = "";
+			var allRevisions = true;
+			jQuery( ".project" ).each( function() {
+				var select = jQuery( this ).find( "select.revisions" );
+				if( select.length > 0 ) {
+					if( revisions != "" ) {
+						revisions += ",";
+					}
+					revisions += jQuery( select ).val();
+				} else {
+					allRevisions = false;
+				}
+			} );
 			var projects = "";
+			var names = "";
 			jQuery( ".select-project" ).each( function() {
 				if( projects != "" ) {
 					projects += ",";
+					names += ",";
 				}
 				projects += jQuery( this ).val();
+				names += jQuery( this ).find( "option:selected" ).text();
 			} );
 			jQuery.ajax( {
 				type: "POST", 
 				url: bimBCFManagementSettings.ajaxURI, 
-				data: "method=submitProjects&projects=" + projects, 
+				data: "method=submitProjects&projects=" + projects + "&names=" + names + "&revisions=" + revisions + "&serverId=" + BIMBCFManagement.serverId + "&username=" + BIMBCFManagement.username + "&password=" + BIMBCFManagement.password, 
 				success: function( response ) {
-					alert( "hi ho!" );
+					if( response && response.projects && response.projects.length > 0 ) {
+						jQuery( ".project .revisions" ).remove();
+						jQuery( ".project .select-project" ).each( function() {
+							for( var i = 0; i < response.projects.length; i ++ ) {
+								if( jQuery( this ).val() == response.projects[i].oid && response.projects[i].revisions ) {
+									// Set the revisions for this selected project
+									var options = "<option value=\"\"> - </option>";
+									for( var p = 0; p < response.projects[i].revisions.length; p ++ ) {
+										options += "<option value=\"" + response.projects[i].revisions[p].lastConcreteRevisionId + "\">" + response.projects[i].revisions[p].comment + "</option>";
+									}
+									jQuery( this ).parent().append( "<br class=\"revisions\" /><label class=\"revisions\" for=\"revisions-for-" + response.projects[i].oid + "\">" + bimBCFManagementSettings.text.revision + "</label><select class=\"revisions\" id=\"revisions-for-" + response.projects[i].oid + "\">" + options + "</select>" );
+								}
+							}
+						} );
+					} else if( response && response.projects && response.projects.length == 0 ) {
+						// setting revisions is done!
+						location.reload(); 
+					}
 				},
 				dataType: "json"
 			} );
@@ -107,7 +147,6 @@ BIMBCFManagement.showServerSelection = function() {
 			jQuery( "#bim-bcf-management-overlay .toggle-server-info" ).addClass( "hidden" );
 		}
 	} );
-	
 };
 
 BIMBCFManagement.serverSelected = function() {
@@ -183,6 +222,9 @@ BIMBCFManagement.selectServer = function( response ) {
 			jQuery( "#bim-bcf-management-overlay .status" ).html( bimBCFManagementSettings.text.noProjectsFoundMessage );
 			return false;
 		}
+	}
+	if( null != response.serverId ) {
+		BIMBCFManagement.serverId = response.serverId;
 	}
 	BIMBCFManagement.showProjectList();
 };

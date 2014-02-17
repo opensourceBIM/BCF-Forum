@@ -88,8 +88,8 @@ if( isset( $_POST['action'] ) ) {
 			fwrite( $file, '		</xs:simpleType>' . "\n" );
 			$redefines .= '	<xs:element name="ExtendedUserIdType" type="UserIdType" />' . "\n";
 		}
-		fwrite( $file, $redefines );
 		fwrite( $file, '	</xs:redefine>' . "\n" );
+		fwrite( $file, $redefines );
 		fwrite( $file, '</xs:schema>' . "\n" );
 		fclose( $file );
 	} else {
@@ -112,7 +112,7 @@ $pages = get_posts( Array(
 ?>
 <div class="wrap">
 	<div class="icon32" id="icon-options-general"></div>
-	<h2>TNO BCF Management Options</h2>
+	<h2>BIM BCF Management Options</h2>
 	<form method="post" enctype="multipart/form-data">
 		<table class="form-table">
 			<tr valign="top">

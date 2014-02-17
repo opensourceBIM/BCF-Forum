@@ -51,6 +51,13 @@ body {
 	padding-bottom: 5px;
 }
 
+#bim-bcf-management-overlay .content label.wide-label {
+	float: none;
+	width: auto;
+	padding-right: 10px;
+	padding-bottom: 5px;
+}
+
 #bim-bcf-management-overlay .content input, #bim-bcf-management-overlay .content select {
 	margin-bottom: 5px;
 }
