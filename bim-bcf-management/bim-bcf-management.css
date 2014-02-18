@@ -61,3 +61,7 @@ body {
 #bim-bcf-management-overlay .content input, #bim-bcf-management-overlay .content select {
 	margin-bottom: 5px;
 }
+
+#bim-bcf-management-overlay .loading-image {
+	padding-left: 10px;
+}

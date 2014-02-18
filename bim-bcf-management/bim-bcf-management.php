@@ -141,6 +141,12 @@ class BIMBCFManagement {
 				'post_status' => 'publish',
 				'orderby' => 'date',
 				'order' => 'DESC',
+				'meta_query' => Array(
+						Array(
+								'key' => 'import_status',
+								'value' => 'complete'
+						)
+				)
 		) );
 		if( count( $myIssues ) > 0 ) {
 			$index = 0;
@@ -151,23 +157,17 @@ class BIMBCFManagement {
 					<th><?php _e( 'Issue', 'bim-bcf-management' ); ?></th>
 					<th><?php _e( 'Date', 'bim-bcf-management' ); ?></th>
 					<th><?php _e( 'Author', 'bim-bcf-management' ); ?></th>
-					<th><?php _e( 'Revision', 'bim-bcf-management' ); ?></th>
-					<th><?php _e( 'Project', 'bim-bcf-management' ); ?></th>
+					<th><?php _e( 'Project/Revision', 'bim-bcf-management' ); ?></th>
 				</tr>
 <?php
 			foreach( $myIssues as $issue ) {
 				$projects = get_post_meta( $issue->ID, 'project' );
 				$projectNames = '';
-				$revisions = '';
 				foreach( $projects as $project ) {
 					if( $projectNames != '' ) {
 						$projectNames .= ', ';
 					}
-					$projectNames .= $project[ 'name' ];
-					if( $revisions != '' ) {
-						$revisions .= ', ';
-					}
-					$revisions .= $project[ 'revision' ];
+					$projectNames .= $project[ 'name' ] . ': ' . $project[ 'revision' ];
 				}
 				$author = get_post_meta( $issue->ID, 'Author', true );
 				$timestamp = strtotime( $issue->post_date );
@@ -177,7 +177,6 @@ class BIMBCFManagement {
 					<td><a href="<?php print( get_bloginfo( 'wpurl' ) . $options[ 'issue_details_uri' ] . '?id=' . $issue->ID );  ?>"><?php print( $issue->post_title ); ?></a></<td>
 					<td><?php print( date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp ) ); ?></<td>
 					<td><?php print( $author == '' ? '-' : $author ); ?></<td>
-					<td><?php print( $revisions == '' ? '-' : $revisions ); ?></<td>
 					<td><?php print( $projectNames == '' ? '-' : $projectNames ); ?></<td>
 				</tr>
 <?php
@@ -402,7 +401,7 @@ class BIMBCFManagement {
 				<script type="text/javascript">
 					var bimBCFManagementSettings = {
 						ajaxURI: "<?php print( plugins_url( 'ajax-handler.php' , __FILE__ ) ); ?>",
-						loadingImage: "<img src=\"<?php bloginfo( 'wpurl' ); ?>/wp-admin/images/loading.gif\" alt=\"loading...\" />",
+						loadingImage: "<img class=\"loading-image\" src=\"<?php bloginfo( 'wpurl' ); ?>/wp-admin/images/loading.gif\" alt=\"loading...\" />",
 						bimsieServers: <?php print( json_encode( $bimsieServers ) ); ?>,
 						ifcProjects: <?php print( json_encode( $projectIds ) ); ?>,
 						text: {
@@ -661,6 +660,7 @@ class BIMBCFManagement {
 
 	public static function setProjectForPendingIssues( $projects, $projectNames = Array(), $revisions = Array() ) {
 		$options = BIMBCFManagement::getOptions();
+		$allDone = false;
 		$unsetIssues = get_posts( Array(
 				'post_type' => $options[ 'bcf_issue_post_type' ],
 				'posts_per_page' => -1,
@@ -695,6 +695,7 @@ class BIMBCFManagement {
 			}
 			// We fill this array with the projects where we have no revision yet
 			if( count( $projectIds ) == count( $projects ) ) { // This should match... how can it not?
+				$allDone = true;
 				foreach( $unsetIssues as $unsetIssue ) {
 					$markups = get_post_meta( $unsetIssue->ID, 'markup' );
 					delete_post_meta( $unsetIssue->ID, 'project' );
@@ -704,14 +705,16 @@ class BIMBCFManagement {
 							foreach( $markup[ 'Header' ][ 'File' ] as $file ) {
 								if( isset( $file[ '@attributes' ] ) && isset( $file[ '@attributes' ][ 'IfcProject' ] ) && $file[ '@attributes' ][ 'IfcProject' ] != '' ) {
 									foreach( $projectIds as $key => $value ) {
-										if( $value == $file[ '@attributes' ][ 'IfcProject' ] ) {
+										if( $projectIdsCheck[$key] == $file[ '@attributes' ][ 'IfcProject' ] . $file[ 'Filename' ] ) {
 											// We found the right project guid
 											// store the project oid for this issue
-											// TODO: fix this so revisions get set properly for all issues
-											add_post_meta( $unsetIssue->ID, 'project', Array( 'ifcProject' => $value, 'file' => $file[ 'Filename' ], 'name' => isset( $projectNames[$key] ) ? $projectNames[$key] : '', 'oid' => $projects[$key], 'revision' => isset( $revisions[$key] ) ? $revisions[$key] : -1 ) );
-											if( !isset( $projectsMissingRevisions[$key] ) && ( !isset( $revisions[$key] ) || $revisions[$key] == '' || $revisions[$key] == -1 ) ) {
+											add_post_meta( $unsetIssue->ID, 'project', Array( 'ifcProject' => $value, 'file' => $file[ 'Filename' ], 'name' => ( isset( $projectNames[$key] ) ? $projectNames[$key] : '' ), 'oid' => $projects[$key], 'revision' => ( ( isset( $revisions[$key] ) && $revisions[$key] != '' ) ? $revisions[$key] : -1 ) ) );
+											if( !isset( $projectsMissingRevisions[$key] ) ) {
+												$projectsMissingRevisions[$key] = Array( 'ifcProject' => $value, 'file' => $file[ 'Filename' ], 'oid' => $projects[$key], 'name' => ( isset( $projectNames[$key] ) ? $projectNames[$key] : '' ), 'revision' => ( ( isset( $revisions[$key] ) && $revisions[$key] != '' ) ? $revisions[$key] : -1 ) );
+											}
+											if( !isset( $revisions[$key] ) || $revisions[$key] == '' || $revisions[$key] == -1 ) {
 												$issueDone = false;
-												$projectsMissingRevisions[$key] = Array( 'ifcProject' => $value, 'file' => $file[ 'Filename' ], 'oid' => $projects[$key], 'name' => isset( $projectNames[$key] ) ? $projectNames[$key] : '', 'revision' => isset( $revisions[$key] ) ? $revisions[$key] : -1 );
+												$allDone = false;
 											}
 											break 1;
 										}
@@ -720,12 +723,14 @@ class BIMBCFManagement {
 							}
 						}
 					}
-					// TODO: is this always correct? need to verify
 					if( $issueDone ) {
 						update_post_meta( $unsetIssue->ID, 'import_status', 'complete' );
 					}
 				}
 			}
+		}
+		if( $allDone ) {
+			$projectsMissingRevisions = Array();
 		}
 		return $projectsMissingRevisions;
 	}
