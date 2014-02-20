@@ -65,3 +65,22 @@ body {
 #bim-bcf-management-overlay .loading-image {
 	padding-left: 10px;
 }
+
+#add-issue-form label {
+	float: left;
+	width: 191px;
+}
+
+#add-issue-form br {
+	clear: both;
+}
+
+#add-issue-form .sub-element {
+	border: 1px solid #dedede;
+	padding: 5px;
+	margin: 5px;
+}
+
+#add-issue-form .sub-element label {
+	width: 180px;
+} 

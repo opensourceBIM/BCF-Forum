@@ -12,6 +12,11 @@ BIMBCFManagement.password = "";
 jQuery( document ).ready( function() {
 	if( document.getElementById( "update-issue-revision-table" ) ) {
 		BIMBCFManagement.issueUpdate();
+	} else if( jQuery( ".more-items" ).length > 0 ) {
+		jQuery( ".more-items" ).on( "click", function( event ) {
+			event.preventDefault();
+			BIMBCFManagement.addFormItem( this.id.replace( "more-", "" ) );
+		} );
 	}
 } );
 
@@ -256,4 +261,30 @@ BIMBCFManagement.showOverlay = function() {
 
 BIMBCFManagement.hideOverlay = function() {
 	jQuery( "#bim-bcf-management-overlay" ).addClass( "hidden" );
+};
+
+BIMBCFManagement.addFormItem = function( name ) {
+	var number = jQuery( "." + name ).length;
+	var html = jQuery( "<div>" ).append( jQuery( "." + name + ":first" ).clone() ).html();
+	// We only replace name array number on normal sub-element items, not sub sub
+	if( jQuery( "." + name + ":first" ).hasClass( "sub-element" ) ) {
+		html = html.replace( /\-0/g, "-" + number );
+		html = html.replace( /\[0\]/g, "[" + number + "]" );
+	} else {
+		// With sub sub elements we replace differently
+		var containerNumber = name.split( "-" );
+		containerNumber = containerNumber[containerNumber.length - 1];
+		html = html.replace( /\-.?-0/g, "-" + containerNumber + "-" + number );
+	}
+	jQuery( html ).insertAfter( "." + name + ":last" );
+	jQuery( "." + name + ":last" ).find( ".sub-sub-element:not(:first)" ).remove();
+	var subHtml = jQuery( "." + name + ":last" ).find( ".sub-sub-element" ).html();
+	if( subHtml ) {
+		subHtml = subHtml.replace( /\-.?-.?/g, "-" + number + "-0" );
+		jQuery( "." + name + ":last" ).find( ".sub-sub-element" ).html( subHtml );
+	}
+	var subHtml = jQuery( "." + name + ":last" ).find( ".more-items" ).on( "click", function( event ) {
+		event.preventDefault();
+		BIMBCFManagement.addFormItem( this.id.replace( "more-", "" ) );
+	} );
 };

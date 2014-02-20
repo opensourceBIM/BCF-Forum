@@ -190,13 +190,6 @@ $pages = get_posts( Array(
 					<p class="description"><?php _e( 'Set the relative URI here if you do not select a page in the option above. This should point to the page which displays single issues', 'bim-bcf-management' ); ?></p>
 				</td>
 			</tr>
-			<!--tr valign="top">
-				<td><label for="extensions">Extensions</label></td>
-				<td>
-					<textarea rows="10" cols="40" id="extensions" name="bim_bcf_management_options[extensions]"><?php print( isset( $bimBCFManagementOptions[ 'extensions' ] ) ? stripslashes( $bimBCFManagementOptions[ 'extensions' ] ) : '' ); ?></textarea>
-					<p class="description"><?php _e( 'Put the XML for the extension schema here', 'bim-bcf-management' ); ?></p>
-				</td>
-			</tr-->
 			<tr valign="top">
 				<td><label for="topic-types">Topic types</label></td>
 				<td>

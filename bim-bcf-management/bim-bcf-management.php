@@ -615,7 +615,254 @@ class BIMBCFManagement {
 	}
 
 	public static function showAddIssueForm() {
-		print( "showAddIssueForm()<br />" );
+		// TODO: Add add more button for multi elements
+		$options = BIMBCFManagement::getOptions();
+		$topicStatuses = explode( ',', $options[ 'topic_statuses' ] );
+		$topicTypes = explode( ',', $options[ 'topic_types' ] );
+		$topicLabels = explode( ',', $options[ 'topic_labels' ] );
+		$snippetTypes = explode( ',', $options[ 'snippet_types' ] );
+		$priorities = explode( ',', $options[ 'priorities' ] );
+		$userIdTypes = explode( ',', $options[ 'user_id_types' ] );
+?>
+			<form method="post" action="" id="add-issue-form">
+				<h3><?php _e( 'Markup', 'bim-bcf-management' ); ?></h3>
+				<h4><?php _e( 'Header', 'bim-bcf-management' ); ?></h4>
+				<h5><?php _e( 'File', 'bim-bcf-management' ); ?></h5>
+				<div class="file sub-element">
+					<label for="file-filename-0"><?php _e( 'Filename', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="filename-0" name="file_filename[]" /><br />
+					<label for="file-date-0"><?php _e( 'Date', 'bim-bcf-management' ); ?></label>
+					<input type="date" id="file-date-0" name="file_date[]" /><br />
+					<label for="file-reference-0"><?php _e( 'Reference', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="file-reference-0" name="file_reference[]" /><br />
+					<label for="file-ifcproject-0"><?php _e( 'Ifc Project', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="file-ifcproject-0" name="file_ifcproject[]" /><br />
+					<label for="file-ifcspatial-0"><?php _e( 'Ifc Spatial Structure Element', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="file-ifcspatial-0" name="file_spatial[]" /><br />
+					<input type="checkbox" id="file-isexternal-0" name="file_isexternal[]" value="true" />
+					<label for="file-isexternal-0"><?php _e( 'Is external', 'bim-bcf-management' ); ?></label><br />
+				</div>
+				<a href="#" class="more-items" id="more-file"><?php _e( 'Add file', 'bim-bcf-management' ); ?></a><br />
+				<h4><?php _e( 'Topic', 'bim-bcf-management' ); ?></h4>
+				<div class="topic sub-element">
+					<label for="referencelink"><?php _e( 'Referencelink', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="referencelink" name="topic_referencelink" /><br />
+					<label for="topic-title"><?php _e( 'Title', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="topic-title" name="topic_title" /><br />
+					<label for="topic-index"><?php _e( 'Index', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="topic-index" name="topic_index" /><br />
+					<label for="topic-label"><?php _e( 'Label', 'bim-bcf-management' ); ?></label>
+					<select id="topic-label" name="topic_label">
+<?php 
+			foreach( $topicLabels as $topicLabel ) {
+?>
+						<option value="<?php print( trim( $topicLabel ) ); ?>"><?php print( trim( $topicLabel ) ); ?></option>
+<?php
+			}
+?>					
+					</select><br />
+					<label for="topic-type"><?php _e( 'Type', 'bim-bcf-management' ); ?></label>
+					<select id="topic-type" name="topic_type">
+<?php 
+			foreach( $topicTypes as $topicType ) {
+?>
+						<option value="<?php print( trim( $topicType ) ); ?>"><?php print( trim( $topicType ) ); ?></option>
+<?php
+			}
+?>					
+					</select><br />
+					<label for="topic-status"><?php _e( 'Status', 'bim-bcf-management' ); ?></label>
+					<select id="topic-status" name="topic_status">
+<?php 
+			foreach( $topicStatuses as $topicStatus ) {
+?>
+						<option value="<?php print( trim( $topicStatus ) ); ?>"><?php print( trim( $topicStatus ) ); ?></option>
+<?php
+			}
+?>					
+					</select><br />
+					<label for="topic-guid"><?php _e( 'Guid', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="topic-guid" name="topic_guid" /><br />
+					<label for="topic-creation-date"><?php _e( 'Creation date', 'bim-bcf-management' ); ?></label>
+					<input type="date" id="topic-creation-date" name="topic_creation_date" /><br />
+					<label for="topic-creation-time"><?php _e( 'Creation time', 'bim-bcf-management' ); ?></label>
+					<input type="time" id="topic-creation-time" name="topic_creation_time" /><br />
+					<label for="topic-modified-date"><?php _e( 'Creation date', 'bim-bcf-management' ); ?></label>
+					<input type="date" id="topic-modified-date" name="topic_modified_date" /><br />
+					<label for="topic-modified-time"><?php _e( 'Modified time', 'bim-bcf-management' ); ?></label>
+					<input type="time" id="topic-modified-time" name="topic_modified_time" /><br />
+					<label for="assigned-to"><?php _e( 'Assigned to', 'bim-bcf-management' ); ?></label>
+					<select id="assigned-to" name="assigned_to">
+<?php 
+			foreach( $userIdTypes as $userIdType ) {
+?>
+						<option value="<?php print( trim( $userIdType ) ); ?>"><?php print( trim( $userIdType ) ); ?></option>
+<?php
+			}
+?>					
+					</select><br />
+					<h5><?php _e( 'Bim Snippet', 'bim-bcf-management' ); ?></h5>
+					<label for="bim-snippet-reference"><?php _e( 'Reference', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="bim-snippet-reference" name="bim_snippet_reference" /><br />
+					<label for="bim-snippet-reference-schema"><?php _e( 'Reference schema', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="bim-snippet-reference-schema" name="bim_snippet_reference_schema" /><br />
+					<label for="bim-snippet-type"><?php _e( 'Bim Snippet Type', 'bim-bcf-management' ); ?></label>
+					<select id="bim-snippet-type" name="bim_snippet_type">
+<?php 
+			foreach( $snippetTypes as $snippetType ) {
+?>
+						<option value="<?php print( trim( $snippetType ) ); ?>"><?php print( trim( $snippetType ) ); ?></option>
+<?php
+			}
+?>					
+					</select><br />
+					<input type="checkbox" id="bim-snippet-isexternal" name="bim_snippet_isexternal" value="true" />
+					<label for="bim-snippet-isexternal"><?php _e( 'Is external', 'bim-bcf-management' ); ?></label><br />
+					<h5><?php _e( 'Document Reference', 'bim-bcf-management' ); ?></h5>
+					<div class="sub-element document-reference">
+						<label for="referenced-document-0"><?php _e( 'Referenced document', 'bim-bcf-management' ); ?></label>
+						<input type="text" id="referenced-document-0" name="referenced_document[]" /><br />
+						<label for="document-reference-description-0"><?php _e( 'Description', 'bim-bcf-management' ); ?></label>
+						<input type="text" id="document-reference-description-0" name="document_reference_description[]" /><br />
+						<label for="document-reference-guid-0"><?php _e( 'Document reference guid', 'bim-bcf-management' ); ?></label>
+						<input type="text" id="document-reference-guid-0" name="document_reference_guid[]" /><br />
+						<input type="checkbox" id="document-reference-isexternal-0" name="document_reference_isexternal[]" value="true" />
+						<label for="document-reference-isexternal-0"><?php _e( 'Is external', 'bim-bcf-management' ); ?></label><br />						
+					</div>
+					<a href="#" class="more-items" id="more-document-reference"><?php _e( 'Add document reference', 'bim-bcf-management' ); ?></a><br />
+					<h5><?php _e( 'Related topics', 'bim-bcf-management' ); ?></h5>
+					<div class="sub-element related-topics">
+						<label for="related-topic-0"><?php _e( 'Related topic', 'bim-bcf-management' ); ?></label>
+						<input type="text" id="related-topic-0" name="related_topic[]" /><br />
+					</div>
+					<a href="#" class="more-items" id="more-related-topics"><?php _e( 'Add related topic', 'bim-bcf-management' ); ?></a><br />
+				</div>
+				<h4><?php _e( 'Viewpoint', 'bim-bcf-management' ); ?></h4>
+				<div class="viewpoint sub-element">
+					<label for="viewpoint-0"><?php _e( 'Viewpoint', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="viewpoint-0" name="viewpoint[]" /><br />
+					<label for="viewpoint-guid-0"><?php _e( 'Guid', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="viewpoint-guid-0" name="viewpoint_guid[]" /><br />
+					<label for="snapshot-0"><?php _e( 'Snapshot', 'bim-bcf-management' ); ?></label>
+					<input type="file" id="snapshot-0" name="snapshot[]" /><br />
+					<div class="viewpoint-comments-0 sub-sub-element">
+						<label for="viewpoint-comments-0-0"><?php _e( 'Comment', 'bim-bcf-management' ); ?></label>
+						<input type="text" id="viewpoint-comments-0-0" name="viewpoint_comment[0][]" /><br />
+					</div>
+					<a href="#" class="more-items" id="more-viewpoint-comments-0"><?php _e( 'Add viewpoint comment', 'bim-bcf-management' ); ?></a><br />
+				</div>
+				<a href="#" class="more-items" id="more-viewpoint"><?php _e( 'Add viewpoint', 'bim-bcf-management' ); ?></a><br />
+				<h3><?php _e( 'Vizualization information', 'bim-bcf-management' ); ?></h3>
+				<h4><?php _e( 'Components', 'bim-bcf-management' ); ?></h4>
+				<div class="component sub-element">
+					<label for="component-ifcguid-0"><?php _e( 'Ifc Guid', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="component-ifcguid-0" name="component_ifcguid[]" /><br />
+					<input type="checkbox" id="component-selected-0" name="component_selected[]" value="true" />
+					<label for="component-selected-0"><?php _e( 'Selected', 'bim-bcf-management' ); ?></label><br />
+					<input type="checkbox" id="component-visible-0" name="component_visible[]" value="true" />
+					<label for="component-visible-0"><?php _e( 'Visible', 'bim-bcf-management' ); ?></label><br />
+					<label for="component-colour-0"><?php _e( 'Colour', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="component-colour-0" name="component_colour[]" /><br />
+					<label for="component-orginatingsystem-0"><?php _e( 'Orginating system', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="component-orginatingsystem-0" name="component_orginatingsystem[]" /><br />
+					<label for="component-authoring-tool-id-0"><?php _e( 'Authoring tool id', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="component-authoring-tool-id-0" name="component_authoring_tool_id[]" /><br />
+				</div>
+				<a href="#" class="more-items" id="more-component"><?php _e( 'Add component', 'bim-bcf-management' ); ?></a><br />
+				<h4><?php _e( 'Orthogonal Camera', 'bim-bcf-management' ); ?></h4>
+				<label for="view-to-world-scale"><?php _e( 'View to world scale', 'bim-bcf-management' ); ?></label>
+				<input type="text" id="view-to-world-scale" name="view_to_world_scale" /><br />
+				<div class="camera-direction sub-element">
+					<label for="camera-direction-x-0"><?php _e( 'X', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="camera-direction-x-0" name="camera_direction_x[]" /><br />
+					<label for="camera-direction-y-0"><?php _e( 'Y', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="camera-direction-y-0" name="camera_direction_y[]" /><br />
+					<label for="camera-direction-z-0"><?php _e( 'Z', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="camera-direction-z-0" name="camera_direction_z[]" /><br />
+				</div>
+				<a href="#" class="more-items" id="more-camera-direction"><?php _e( 'Add camera direction', 'bim-bcf-management' ); ?></a><br />
+				<h4><?php _e( 'Perspective Camera', 'bim-bcf-management' ); ?></h4>
+				<label for="field-of-view"><?php _e( 'Field of view', 'bim-bcf-management' ); ?></label>
+				<input type="text" id="field-of-view" name="field_of_view" /><br />
+				<div class="camera-perspective sub-element">
+					<label for="camera-perspective-x-0"><?php _e( 'X', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="camera-perspective-x-0" name="camera_perspective_x[]" /><br />
+					<label for="camera-perspective-y-0"><?php _e( 'Y', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="camera-perspective-y-0" name="camera_perspective_y[]" /><br />
+					<label for="camera-perspective-z-0"><?php _e( 'Z', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="camera-perspective-z-0" name="camera_perspective_z[]" /><br />
+				</div>
+				<a href="#" class="more-items" id="more-camera-perspective"><?php _e( 'Add camera perspective', 'bim-bcf-management' ); ?></a><br />
+				<h4><?php _e( 'Lines', 'bim-bcf-management' ); ?></h4>
+				<div class="line sub-element">
+					<h5><?php _e( 'Startpoint', 'bim-bcf-management' ); ?></h5>
+					<label for="line-start-x-0"><?php _e( 'X', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="line-start-x-0" name="line_start_x[]" /><br />
+					<label for="line-start-y-0"><?php _e( 'Y', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="line-start-y-0" name="line_start_y[]" /><br />
+					<label for="line-start-z-0"><?php _e( 'Z', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="line-start-z-0" name="line_start_z[]" /><br />
+					<h5><?php _e( 'Endpoint', 'bim-bcf-management' ); ?></h5>
+					<label for="line-end-x-0"><?php _e( 'X', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="line-end-x-0" name="line_end_x[]" /><br />
+					<label for="line-end-y-0"><?php _e( 'Y', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="line-end-y-0" name="line_end_y[]" /><br />
+					<label for="line-end-z-0"><?php _e( 'Z', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="line-end-z-0" name="line_end_z[]" /><br />
+				</div>
+				<a href="#" class="more-items" id="more-line"><?php _e( 'Add line', 'bim-bcf-management' ); ?></a><br />
+				<h4><?php _e( 'Clipping planes', 'bim-bcf-management' ); ?></h4>
+				<div class="clipping-plane sub-element">
+					<h5><?php _e( 'Location', 'bim-bcf-management' ); ?></h5>
+					<label for="clipping-plane-location-x-0"><?php _e( 'X', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="clipping-plane-location-x-0" name="clipping_plane_location_x[]" /><br />
+					<label for="clipping-plane-location-y-0"><?php _e( 'Y', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="clipping-plane-location-y-0" name="clipping_plane_location_y[]" /><br />
+					<label for="clipping-plane-location-z-0"><?php _e( 'Z', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="clipping-plane-location-z-0" name="clipping_plane_location_z[]" /><br />
+					<h5><?php _e( 'Direction', 'bim-bcf-management' ); ?></h5>
+					<label for="clipping-plane-direction-x-0"><?php _e( 'X', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="clipping-plane-direction-x-0" name="clipping_plane_direction_x[]" /><br />
+					<label for="clipping-plane-direction-y-0"><?php _e( 'Y', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="clipping-plane-direction-y-0" name="clipping_plane_direction_y[]" /><br />
+					<label for="clipping-plane-direction-z-0"><?php _e( 'Z', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="clipping-plane-direction-z-0" name="clipping_plane_direction_z[]" /><br />
+				</div>
+				<a href="#" class="more-items" id="more-clipping-plane"><?php _e( 'Add clipping plane', 'bim-bcf-management' ); ?></a><br />
+				<h4><?php _e( 'Bitmap', 'bim-bcf-management' ); ?></h4>
+				<label for="bitmap"><?php _e( 'Bitmap', 'bim-bcf-management' ); ?></label>
+				<input type="text" id="bitmap" name="bitmap" /><br />
+				<label for="reference"><?php _e( 'Reference', 'bim-bcf-management' ); ?></label>
+				<input type="text" id="reference" name="reference" /><br />
+				<label for="height"><?php _e( 'Height', 'bim-bcf-management' ); ?></label>
+				<input type="text" id="height" name="height" /><br />
+				<h5><?php _e( 'Location', 'bim-bcf-management' ); ?></h5>
+				<label for="bitmap-location-x"><?php _e( 'X', 'bim-bcf-management' ); ?></label>
+				<input type="text" id="bitmap-location-x" name="bitmap_location_x" /><br />
+				<label for="bitmap-location-y"><?php _e( 'Y', 'bim-bcf-management' ); ?></label>
+				<input type="text" id="bitmap-location-y" name="bitmap_location_y" /><br />
+				<label for="bitmap-location-z"><?php _e( 'Z', 'bim-bcf-management' ); ?></label>
+				<input type="text" id="bitmap-location-z" name="bitmap_location_z" /><br />
+				<h5><?php _e( 'Normal', 'bim-bcf-management' ); ?></h5>
+				<label for="bitmap-normal-x"><?php _e( 'X', 'bim-bcf-management' ); ?></label>
+				<input type="text" id="bitmap-normal-x" name="bitmap_normal_x" /><br />
+				<label for="bitmap-normal-y"><?php _e( 'Y', 'bim-bcf-management' ); ?></label>
+				<input type="text" id="bitmap-normal-y" name="bitmap_normal_y" /><br />
+				<label for="bitmap-normal-z"><?php _e( 'Z', 'bim-bcf-management' ); ?></label>
+				<input type="text" id="bitmap-normal-z" name="bitmap_normal_z" /><br />
+				<h5><?php _e( 'Up', 'bim-bcf-management' ); ?></h5>
+				<label for="bitmap-up-x"><?php _e( 'X', 'bim-bcf-management' ); ?></label>
+				<input type="text" id="bitmap-up-x" name="bitmap_up_x" /><br />
+				<label for="bitmap-up-y"><?php _e( 'Y', 'bim-bcf-management' ); ?></label>
+				<input type="text" id="bitmap-up-y" name="bitmap_up_y" /><br />
+				<label for="bitmap-up-z"><?php _e( 'Z', 'bim-bcf-management' ); ?></label>
+				<input type="text" id="bitmap-up-z" name="bitmap_up_z" /><br />
+				<div class="submit-container">
+					<input type="submit" name="submit" value="<?php _e( 'Submit', 'bim-bcf-management' ); ?>" />
+				</div>
+				Note: Comments can be added after the issue is created
+			</form>
+<?php
 	}
 
 	public static function getOptions( $forceReload = false ) {
