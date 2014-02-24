@@ -4,18 +4,27 @@ include( '../../../wp-config.php' );
 // TODO: add functions and implement functions
 $supportedCalls = Array(
 	'Bimsie1AuthInterface' => Array(
-//		 		'login',
-//		 		'logout',
 		'getAccessMethod',
+		'isLoggedIn',
+		'login',
+		'logout',
 	),
+	'Bimsie1BcfInterface' => Array(
+			
+	)
 );
 
 $input = file_get_contents( 'php://input' );
+if( ( !isset( $input ) || $input == '' ) && isset( $_SERVER[ 'QUERY_STRING' ] ) && $_SERVER[ 'QUERY_STRING' ] != '' ) {
+	$input = urldecode( $_SERVER[ 'QUERY_STRING' ] );
+}
 if( isset( $input ) && $input != '' ) {
 	$request = json_decode( $input, true );
 }
-
 if( isset( $request ) ) {
+	$invalid = false;
+	$errorMessage = '';
+	$errorType = '';
 	if( isset( $request[ 'request' ] ) 
 			&& isset( $request[ 'request' ][ 'interface' ] ) 
 			&& isset( $request[ 'request' ][ 'method' ] ) 
@@ -24,26 +33,80 @@ if( isset( $request ) ) {
 				&& in_array( $request[ 'request' ][ 'method' ], $supportedCalls[$request[ 'request' ][ 'interface' ]] ) ) {
 			if( $request[ 'request' ][ 'interface' ] == 'Bimsie1AuthInterface' ) {
 				if( $request[ 'request' ][ 'method' ] == 'getAccessMethod' ) {
-					$response = Array( 'response' => Array( 'result' => 'JSON' ) );
+					$result = 'JSON';
+				} elseif( $request[ 'request' ][ 'method' ] == 'login' ) {
+					if( !isset( $request[ 'request' ][ 'parameters' ][ 'username' ] ) || $request[ 'request' ][ 'parameters' ][ 'username' ] == '' ||
+							!isset( $request[ 'request' ][ 'parameters' ][ 'password' ] ) || $request[ 'request' ][ 'parameters' ][ 'password' ] == ''  ) {
+						$invalid = true;
+						$errorType = 'UserException';
+						$errorMessage = __( 'Invalid username/password combination', 'bim-bcf-management' );
+					}
+					$token = BIMsie::login( $request[ 'request' ][ 'parameters' ][ 'username' ], $request[ 'request' ][ 'parameters' ][ 'password' ] );
+					// get user id and hash, if it exists
+					if( $token === false ) {
+						$invalid = true;
+						$errorType = 'UserException';
+						$errorMessage = __( 'Invalid username/password combination', 'bim-bcf-management' );
+					} else {
+						$result = $token;
+					}
+				} elseif( $request[ 'request' ][ 'method' ] == 'logout' ) {
+					if( isset( $request[ 'token' ] ) && $request[ 'token' ] != '' ) {
+						$userId = BIMsie::getUserIdByToken( $request[ 'token' ] );
+						if( $userId !== false ) {
+							delete_user_meta( $userId, 'bimsie_token' );
+							$result = true;
+						} else {
+							$result = false;
+						}
+					} else {
+						$invalid = true;
+						$errorType = 'UserException';
+						$errorMessage = __( 'Invalid token', 'bim-bcf-management' );
+					}
+				} elseif( $request[ 'request' ][ 'method' ] == 'isLoggedIn' ) {	
+					if( isset( $request[ 'token' ] ) && $request[ 'token' ] != '' ) {
+						$userId = BIMsie::getUserIdByToken( $request[ 'token' ] );
+						if( $userId !== false ) {
+							$result = true;
+						} else {
+							$result = false;
+						}
+					} else {
+						$invalid = true;
+						$errorType = 'UserException';
+						$errorMessage = __( 'Invalid token', 'bim-bcf-management' );
+					}
 				}
-			}
-			
-			if( isset( $response ) ) {
-				print( json_encode( $response ) );
-			} else {
-				print( "interface: {$request[ 'request' ][ 'interface' ]}<br />" );
-				print( "method: {$request[ 'request' ][ 'method' ]}<br />" );
-				print( "parameters:<br />" );
-				foreach( $request[ 'request' ][ 'parameters' ] as $key => $value ) {
-					print( " - $key: $value<br />" );
-				}
+			} elseif( $request[ 'request' ][ 'interface' ] == 'Bimsie1BcfInterface' ) {
+				// TODO: BCF methods here
 			}
 		} else {
-			print( 'Unsupported interface or method, check supported methods by browsing to: ' . plugins_url( 'api.php', __FILE__ ) );
+			$invalid = true;
+			$errorType = 'InvalidRequest';
+			$errorMessage  = __( 'Unsupported interface or method, check supported methods by browsing to: ', 'bim-bcf-management' ) . plugins_url( 'api.php', __FILE__ );
 		}
 	} else {
-		print( 'Invalid request paramaters. Supply your request parameters in this format: {"request":{"interface":"","method":"","parameters":{}}}' );
+		$invalid = true;
+		$errorType = 'InvalidRequest';
+		$errorMessage  = __( 'Invalid request paramaters. Supply your request parameters in this format: ', 'bim-bcf-management' ) . '{"request":{"interface":"","method":"","parameters":{}}}';
 	}
+	if( $invalid ) {
+		$response = Array( 'response' => Array( 'exception' => Array( '__type' => $errorType, 'message' => $errorMessage ) ) );
+	} elseif( !isset( $result ) ) {
+		// TODO: this is only temporary for testing
+		print( "Method is not yet implemented even though it is in the supported array... my bad<br />" );
+		print( "interface: {$request[ 'request' ][ 'interface' ]}<br />" );
+		print( "method: {$request[ 'request' ][ 'method' ]}<br />" );
+		print( "parameters:<br />" );
+		foreach( $request[ 'request' ][ 'parameters' ] as $key => $value ) {
+			print( " - $key: $value<br />" );
+		}
+		exit();
+	} else {
+		$response = Array( 'response' => Array( 'result' => $result ) );
+	}
+	print( json_encode( $response ) );
 } else {
 ?>
 <html>

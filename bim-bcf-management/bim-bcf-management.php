@@ -615,7 +615,6 @@ class BIMBCFManagement {
 	}
 
 	public static function showAddIssueForm() {
-		// TODO: Add add more button for multi elements
 		$options = BIMBCFManagement::getOptions();
 		$topicStatuses = explode( ',', $options[ 'topic_statuses' ] );
 		$topicTypes = explode( ',', $options[ 'topic_types' ] );
