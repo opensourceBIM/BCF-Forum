@@ -85,11 +85,18 @@ if( isset( $request ) ) {
 					if( isset( $request[ 'request' ][ 'parameters' ][ 'bimsieUrl' ] ) && $request[ 'request' ][ 'parameters' ][ 'bimsieUrl' ] != '' && 
 							isset( $request[ 'request' ][ 'parameters' ][ 'poid' ] ) && is_numeric( $request[ 'request' ][ 'parameters' ][ 'poid' ] ) &&
 							isset( $request[ 'request' ][ 'parameters' ][ 'roid' ] ) && is_numeric( $request[ 'request' ][ 'parameters' ][ 'roid' ] ) ) {
-						// return list of issues for the current user with the right server/poid/roid combi
-						$issues = BIMBCFManagement::getIssuesByProjectRevision( $request[ 'request' ][ 'parameters' ][ 'bimsieUrl' ], $request[ 'request' ][ 'parameters' ][ 'poid' ], $request[ 'request' ][ 'parameters' ][ 'roid' ] );
-						$result = Array();
-						foreach( $issues as $issue ) {
-							$result[] = BIMBCFManagement::getJSONFromIssue( $issue );
+						$userId = BIMsie::getUserIdByToken( $request[ 'token' ] );
+						if( $userId !== false ) {
+							// return list of issues for the current user with the right server/poid/roid combi
+							$issues = BIMBCFManagement::getIssuesByProjectRevision( $userId, $request[ 'request' ][ 'parameters' ][ 'bimsieUrl' ], $request[ 'request' ][ 'parameters' ][ 'poid' ], $request[ 'request' ][ 'parameters' ][ 'roid' ] );
+							$result = Array();
+							foreach( $issues as $issue ) {
+								$result[] = BIMBCFManagement::getJSONFromIssue( $issue );
+							}
+						} else {
+							$invalid = true;
+							$errorType = 'UserException';
+							$errorMessage = __( 'Invalid token', 'bim-bcf-management' );
 						}
 					} else { 
 						$invalid = true;

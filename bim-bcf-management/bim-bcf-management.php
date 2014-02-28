@@ -1054,14 +1054,14 @@ class BIMBCFManagement {
 		}
 	}
 	
-	public static function getIssuesByProjectRevision( $bimsieUrl, $poid, $roid ) {
+	public static function getIssuesByProjectRevision( $userId, $bimsieUrl, $poid, $roid ) {
 		$options = BIMBCFManagement::getOptions();
 		$bimsieUrl = str_replace( 'https://', '', $bimsieUrl );
 		$bimsieUrl = str_replace( 'http://', '', $bimsieUrl );
 		$issues = get_posts( Array(
 				'post_type' => $options[ 'bcf_issue_post_type' ],
 				'posts_per_page' => -1,
-				'author' => get_current_user_id(),
+				'author' => $userId,
 				'meta_query' => Array(
 						'relation' => 'AND',
 						Array(
