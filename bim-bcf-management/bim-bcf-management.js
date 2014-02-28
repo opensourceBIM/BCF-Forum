@@ -46,7 +46,8 @@ BIMBCFManagement.showRevisionList = function() {
 
 BIMBCFManagement.showProjectList = function() {
 	if( BIMBCFManagement.projectList.length > 0 ) {
-		// TODO: Show dropdown with projects and other server button next to it
+		// Show dropdown with projects and other server button next to it
+		// TODO: show different server button maybe?
 		var overlay = BIMBCFManagement.showOverlay();
 		overlay.find( ".title" ).html( bimBCFManagementSettings.text.selectProjectTitle );
 		var html = "";
@@ -60,6 +61,7 @@ BIMBCFManagement.showProjectList = function() {
 		}
 		html += "<input type=\"button\" value=\"submit\" id=\"submit-project-link\" />";
 		overlay.find( ".content" ).html( html );
+		BIMBCFManagement.overlayAutoHeight();
 		jQuery( ".select-project" ).change( function() {
 			jQuery( this ).parent().find( ".revisions" ).remove();
 		} );
@@ -108,23 +110,24 @@ BIMBCFManagement.showProjectList = function() {
 									// Set the revisions for this selected project
 									var options = "<option value=\"\"> - </option>";
 									for( var p = 0; p < response.projects[i].revisions.length; p ++ ) {
-										options += "<option value=\"" + response.projects[i].revisions[p].lastConcreteRevisionId + "\">" + response.projects[i].revisions[p].lastConcreteRevisionId + " - " + response.projects[i].revisions[p].comment + "</option>";
+										options += "<option value=\"" + response.projects[i].revisions[p].lastConcreteRevisionId + "\"" + ( response.projects[i].revisions.length == 1 ? " selected" : "" ) + ">" + response.projects[i].revisions[p].dateString + " - " + response.projects[i].revisions[p].comment + "</option>";
 									}
 									jQuery( this ).parent().append( "<br class=\"revisions\" /><label class=\"revisions\" for=\"revisions-for-" + response.projects[i].oid + "\">" + bimBCFManagementSettings.text.revision + "</label><select class=\"revisions\" id=\"revisions-for-" + response.projects[i].oid + "\">" + options + "</select>" );
 									break;
 								}
 							}
 						} );
+						BIMBCFManagement.overlayAutoHeight();
 					} else if( response && response.projects && response.projects.length == 0 ) {
 						// setting revisions is done!
-						location.reload(); 
+						document.location.href = document.location.href; 
 					}
 				},
 				dataType: "json"
 			} );
 		} );
 	} else {
-		// TODO: handle server connection here
+		// handle server connection here
 		BIMBCFManagement.showServerSelection();
 	}
 };
@@ -153,13 +156,14 @@ BIMBCFManagement.showServerSelection = function() {
 	);
 	
 	jQuery( "#new-bimsie-server" ).on( "keyup keypress blur click", function() {
-		// TODO: maybe add some validation for the URI
+		// maybe add some validation for the URI
 		if( this.value.length > 4 ) {
 			jQuery( "#bim-bcf-management-overlay .toggle-server-info" ).removeClass( "hidden" );
 		} else {
 			jQuery( "#bim-bcf-management-overlay .toggle-server-info" ).addClass( "hidden" );
 		}
 	} );
+	BIMBCFManagement.overlayAutoHeight();
 };
 
 BIMBCFManagement.serverSelected = function() {
@@ -251,11 +255,11 @@ BIMBCFManagement.showOverlay = function() {
 	if( overlay.length == 0 ) {
 		jQuery( "body" ).append( "<div id=\"bim-bcf-management-overlay\"><div class=\"title\"></div><div class=\"status\"></div><div class=\"content\"></div></div>" );
 		overlay = jQuery( "#bim-bcf-management-overlay" );
+		overlay.css( { 
+			"top": Math.abs( ( jQuery( window ).height() - jQuery( overlay ).outerHeight() ) * 0.5 ) + jQuery( window ).scrollTop(),
+			"left": Math.abs( ( jQuery( window ).width() - jQuery( overlay ).outerWidth() ) * 0.5 ) + jQuery( window ).scrollLeft()
+		} );
 	}
-	overlay.css( { 
-		"top": Math.abs( ( jQuery( window ).height() - jQuery( overlay ).outerHeight() ) * 0.5 ) + jQuery( window ).scrollTop(),
-		"left": Math.abs( ( jQuery( window ).width() - jQuery( overlay ).outerWidth() ) * 0.5 ) + jQuery( window ).scrollLeft()
-	} );
 	return overlay;
 };
 
@@ -287,4 +291,15 @@ BIMBCFManagement.addFormItem = function( name ) {
 		event.preventDefault();
 		BIMBCFManagement.addFormItem( this.id.replace( "more-", "" ) );
 	} );
+};
+
+BIMBCFManagement.overlayAutoHeight = function() {
+	var overlay = jQuery( "#bim-bcf-management-overlay" );
+	if( overlay && !overlay.hasClass( "hidden" ) ) {
+		overlay.height( overlay.find( ".content" ).outerHeight() + overlay.find( ".status" ).outerHeight() + overlay.find( ".title" ).outerHeight() );
+		overlay.css( { 
+			"top": Math.abs( ( jQuery( window ).height() - jQuery( overlay ).outerHeight() ) * 0.5 ) + jQuery( window ).scrollTop(),
+			"left": Math.abs( ( jQuery( window ).width() - jQuery( overlay ).outerWidth() ) * 0.5 ) + jQuery( window ).scrollLeft()
+		} );
+	}
 };

@@ -133,23 +133,24 @@ class BIMBCFManagement {
 	}
 
 	public static function showIssues() {
-		//print( "showIssues()<br />" );
-		$options = BIMBCFManagement::getOptions();
-		$myIssues = get_posts( Array(
-				'posts_per_page' => -1,
-				'post_type' => $options[ 'bcf_issue_post_type' ],
-				'post_status' => 'publish',
-				'orderby' => 'date',
-				'order' => 'DESC',
-				'meta_query' => Array(
-						Array(
-								'key' => 'import_status',
-								'value' => 'complete'
-						)
-				)
-		) );
-		if( count( $myIssues ) > 0 ) {
-			$index = 0;
+		if( is_user_logged_in() ) {
+			//print( "showIssues()<br />" );
+			$options = BIMBCFManagement::getOptions();
+			$myIssues = get_posts( Array(
+					'posts_per_page' => -1,
+					'post_type' => $options[ 'bcf_issue_post_type' ],
+					'post_status' => 'publish',
+					'orderby' => 'date',
+					'order' => 'DESC',
+					'meta_query' => Array(
+							Array(
+									'key' => 'import_status',
+									'value' => 'complete'
+							)
+					)
+			) );
+			if( count( $myIssues ) > 0 ) {
+				$index = 0;
 ?>
 			<table class="issue-table">
 				<tr>
@@ -160,17 +161,17 @@ class BIMBCFManagement {
 					<th><?php _e( 'Project/Revision', 'bim-bcf-management' ); ?></th>
 				</tr>
 <?php
-			foreach( $myIssues as $issue ) {
-				$projects = get_post_meta( $issue->ID, 'project' );
-				$projectNames = '';
-				foreach( $projects as $project ) {
-					if( $projectNames != '' ) {
-						$projectNames .= ', ';
+				foreach( $myIssues as $issue ) {
+					$projects = get_post_meta( $issue->ID, 'project' );
+					$projectNames = '';
+					foreach( $projects as $project ) {
+						if( $projectNames != '' ) {
+							$projectNames .= ', ';
+						}
+						$projectNames .= $project[ 'name' ] . ': ' . $project[ 'revision' ];
 					}
-					$projectNames .= $project[ 'name' ] . ': ' . $project[ 'revision' ];
-				}
-				$author = get_post_meta( $issue->ID, 'Author', true );
-				$timestamp = strtotime( $issue->post_date );
+					$author = get_post_meta( $issue->ID, 'Author', true );
+					$timestamp = strtotime( $issue->post_date );
 ?>
 				<tr class="<?php print( $index % 2 == 0 ? 'even' : 'odd' ); ?>">
 					<td><?php print( get_the_post_thumbnail( $issue->ID, 'issue-list-thumb' ) ); ?></td>
@@ -180,48 +181,54 @@ class BIMBCFManagement {
 					<td><?php print( $projectNames == '' ? '-' : $projectNames ); ?></<td>
 				</tr>
 <?php
-				$index ++;
-			}
+					$index ++;
+				}
 ?>
 			</table>
 <?php
-		} else {
+			} else {
 ?>
 			<p><?php _e( 'No BCF issues imported yet', 'bim-bcf-management' ); ?></p>
 <?php
+			}
+		} else {
+?>
+		<p><?php _e( 'Please log in to access this page', 'bim-bcf-management' ); ?></p>
+<?php
 		}
 	}
-
+	
 	public static function showIssue() {
 		//print( "showIssue()<br />" );
-		global $post;
-		$issueId = ( isset( $_GET[ 'id' ] ) && ctype_digit( $_GET[ 'id' ] ) ) ? $_GET[ 'id' ] : -1;
-		if( $issueId == -1 && isset( $post ) && isset( $post->ID ) ) {
-			// if no id is supplied we assume the current post is the issue we want to display
-			$issueId = $post->ID;
-		}
-		if( $issueId != -1 ) {
-			$options = BIMBCFManagement::getOptions();
-			$currentUserId = get_current_user_id();
-			$issue = get_post( $issueId );
-			if( $issue->post_author == $currentUserId && $issue->post_type == $options[ 'bcf_issue_post_type' ] ) {
-				$projects = get_post_meta( $issue->ID, 'project' );
-				$projectNames = '';
-				$revisions = '';
-				foreach( $projects as $project ) {
-					if( $projectNames != '' ) {
-						$projectNames .= ', ';
+		if( is_user_logged_in() ) {
+			global $post;
+			$issueId = ( isset( $_GET[ 'id' ] ) && ctype_digit( $_GET[ 'id' ] ) ) ? $_GET[ 'id' ] : -1;
+			if( $issueId == -1 && isset( $post ) && isset( $post->ID ) ) {
+				// if no id is supplied we assume the current post is the issue we want to display
+				$issueId = $post->ID;
+			}
+			if( $issueId != -1 ) {
+				$options = BIMBCFManagement::getOptions();
+				$currentUserId = get_current_user_id();
+				$issue = get_post( $issueId );
+				if( $issue->post_author == $currentUserId && $issue->post_type == $options[ 'bcf_issue_post_type' ] ) {
+					$projects = get_post_meta( $issue->ID, 'project' );
+					$projectNames = '';
+					$revisions = '';
+					foreach( $projects as $project ) {
+						if( $projectNames != '' ) {
+							$projectNames .= ', ';
+						}
+						$projectNames .= $project[ 'name' ];
+						if( $revisions != '' ) {
+							$revisions .= ', ';
+						}
+						$revisions .= $project[ 'revision' ];
 					}
-					$projectNames .= $project[ 'name' ];
-					if( $revisions != '' ) {
-						$revisions .= ', ';
-					}
-					$revisions .= $project[ 'revision' ];
-				}
-				$author = get_post_meta( $issue->ID, 'Author', true );
-				$verbalStatus = get_post_meta( $issue->ID, 'VerbalStatus', true );
-				$status = get_post_meta( $issue->ID, 'Status', true );
-				$timestamp = strtotime( $issue->post_date );
+					$author = get_post_meta( $issue->ID, 'Author', true );
+					$verbalStatus = get_post_meta( $issue->ID, 'VerbalStatus', true );
+					$status = get_post_meta( $issue->ID, 'Status', true );
+					$timestamp = strtotime( $issue->post_date );
 ?>
 			<div class="issue-image"><?php print( get_the_post_thumbnail( $issueId, 'issue-detail-thumb' ) ); ?></div>
 			<h3><?php print( $issue->post_title ); ?></h3>
@@ -254,110 +261,117 @@ class BIMBCFManagement {
 
 			</table>
 <?php
-			} else {
+				} else {
 ?>
 			<p><?php _e( 'Issue not accessible', 'bim-bcf-management' ); ?></p>
+<?php
+				}
+			} else {
+?>
+			<p><?php _e( 'No issue selected', 'bim-bcf-management' ); ?></p>
 <?php
 			}
 		} else {
 ?>
-			<p><?php _e( 'No issue selected', 'bim-bcf-management' ); ?></p>
+		<p><?php _e( 'Please log in to access this page', 'bim-bcf-management' ); ?></p>
 <?php
 		}
 	}
 
 	public static function showAddZipForm() {
-		if( isset( $_FILES[ 'bcf_zip_file' ] ) ) {
-			if( isset( $_FILES[ 'bcf_zip_file' ][ 'error' ] ) && $_FILES[ 'bcf_zip_file' ][ 'error' ] != 0 ) {
-				$errorMessage = __( 'Could not upload the file, contact a system administrator.', 'bim-bcf-management' ) . ' Error code: ' . $_FILES[ 'bcf_zip_file' ][ 'error' ];
-			}
-			if( !isset( $errorMessage ) ) {
-				$errorMessage = '';
-				$zip = zip_open( $_FILES[ 'bcf_zip_file' ][ 'tmp_name' ] );
-				if( is_resource( $zip ) ) {
-					$files = Array();
-					$guids = Array();
-					while( ( $entry = zip_read( $zip ) ) !== false ) {
-						// Every line should be a file from an issue
-						$xml = '';
-						$entryName = explode( '/', zip_entry_name( $entry ) );
-						if( count( $entryName ) > 1 ) {
-							$guid = $entryName[count( $entryName ) - 2];
-							$filename = $entryName[count( $entryName ) - 1];
-							if( zip_entry_open( $zip, $entry ) ) {
-								while( ( $subEntry = zip_entry_read( $entry ) ) !== false && $subEntry != '' ) {
-									$xml .= $subEntry;
-								}
-								zip_entry_close( $entry );
-							}
-						}
-						if( !in_array( $guid, $guids ) ) {
-							if( count( $files ) > 1 ) {
-								// Import this XML
-								if( !BIMBCFManagement::addIssueFromZip( $files ) ) {
-									$filesError = __( 'Error at import', 'bim-bcf-management' ) . ' (guid: ' . $guid . ', files: ';
-									$firstFile = true;
-									foreach( $files as $file ) {
-										if( !$firstFile ) {
-											$filesError .= ', ';
-										} else {
-											$firstFile = false;
-										}
-										$filesError .= $file[1];
-									}
-									$errorMessage .= $filesError;
-								}
-								$files = Array();
-							}
-							$guids[] = $guid;
-						}
-						$files[] = Array( $guid, $filename, $xml );
-					}
-					if( count( $files ) > 0 ) {
-						$errorMessage .= BIMBCFManagement::addIssueFromZip( $files );
-					}
-					zip_close( $zip );
-				} else {
-					$errorMessage = __( 'Could not open the zip archive.', 'bim-bcf-management' ) . ' Error code: ' . $zip;
+		if( is_user_logged_in() ) {
+			if( isset( $_FILES[ 'bcf_zip_file' ] ) ) {
+				if( isset( $_FILES[ 'bcf_zip_file' ][ 'error' ] ) && $_FILES[ 'bcf_zip_file' ][ 'error' ] != 0 ) {
+					$errorMessage = __( 'Could not upload the file, contact a system administrator.', 'bim-bcf-management' ) . ' Error code: ' . $_FILES[ 'bcf_zip_file' ][ 'error' ];
 				}
-			}
-
-			if( isset( $errorMessage ) && $errorMessage != '' ) {
+				if( !isset( $errorMessage ) ) {
+					$errorMessage = '';
+					$zip = zip_open( $_FILES[ 'bcf_zip_file' ][ 'tmp_name' ] );
+					if( is_resource( $zip ) ) {
+						$files = Array();
+						$guids = Array();
+						while( ( $entry = zip_read( $zip ) ) !== false ) {
+							// Every line should be a file from an issue
+							$xml = '';
+							$entryName = explode( '/', zip_entry_name( $entry ) );
+							if( count( $entryName ) > 1 ) {
+								$guid = $entryName[count( $entryName ) - 2];
+								$filename = $entryName[count( $entryName ) - 1];
+								if( zip_entry_open( $zip, $entry ) ) {
+									while( ( $subEntry = zip_entry_read( $entry ) ) !== false && $subEntry != '' ) {
+										$xml .= $subEntry;
+									}
+									zip_entry_close( $entry );
+								}
+							}
+							if( !in_array( $guid, $guids ) ) {
+								if( count( $files ) > 1 ) {
+									// Import this XML
+									if( !BIMBCFManagement::addIssueFromZip( $files ) ) {
+										$filesError = __( 'Error at import', 'bim-bcf-management' ) . ' (guid: ' . $guid . ', files: ';
+										$firstFile = true;
+										foreach( $files as $file ) {
+											if( !$firstFile ) {
+												$filesError .= ', ';
+											} else {
+												$firstFile = false;
+											}
+											$filesError .= $file[1];
+										}
+										$errorMessage .= $filesError;
+									}
+									$files = Array();
+								}
+								$guids[] = $guid;
+							}
+							$files[] = Array( $guid, $filename, $xml );
+						}
+						if( count( $files ) > 0 ) {
+							$errorMessage .= BIMBCFManagement::addIssueFromZip( $files );
+						}
+						zip_close( $zip );
+					} else {
+						$errorMessage = __( 'Could not open the zip archive.', 'bim-bcf-management' ) . ' Error code: ' . $zip;
+					}
+				}
+	
+				if( isset( $errorMessage ) && $errorMessage != '' ) {
 ?>
 				<p class="form-error-message"><?php print( $errorMessage ); ?></p>
 <?php
+				}
 			}
-		}
-
-		$options = BIMBCFManagement::getOptions();
-		$unsetIssues = get_posts( Array(
-				'post_type' => $options[ 'bcf_issue_post_type' ],
-				'posts_per_page' => -1,
-				'author' => get_current_user_id(),
-				'meta_query' => Array(
-						Array(
-								'key' => 'import_status',
-								'value' => 'pending'
-						)
-				)
-		) );
-
-		if( count( $unsetIssues ) > 0 ) {
-			$projectIds = Array();
-			foreach( $unsetIssues as $unsetIssue ) {
-				$markups = get_post_meta( $unsetIssue->ID, 'markup' );
-				foreach( $markups as $markup ) {
-					if( isset( $markup[ 'Header' ][ 'File' ] ) ) {
-						foreach( $markup[ 'Header' ][ 'File' ] as $file ) {
-							if( isset( $file[ '@attributes' ] ) && isset( $file[ '@attributes' ][ 'IfcProject' ] ) && $file[ '@attributes' ][ 'IfcProject' ] != '' ) {
-								if( !in_array( $file[ 'Filename' ] . ', ifcProject: ' . $file[ '@attributes' ][ 'IfcProject' ], $projectIds ) ) {
-									$projectIds[] = $file[ 'Filename' ] . ', ifcProject: ' . $file[ '@attributes' ][ 'IfcProject' ];
+	
+			$options = BIMBCFManagement::getOptions();
+			$unsetIssues = get_posts( Array(
+					'post_type' => $options[ 'bcf_issue_post_type' ],
+					'posts_per_page' => -1,
+					'author' => get_current_user_id(),
+					'meta_query' => Array(
+							Array(
+									'key' => 'import_status',
+									'value' => 'pending'
+							)
+					)
+			) );
+	
+			if( count( $unsetIssues ) > 0 ) {
+				$projectIds = Array();
+				foreach( $unsetIssues as $unsetIssue ) {
+					$markups = get_post_meta( $unsetIssue->ID, 'markup' );
+					foreach( $markups as $markup ) {
+						if( isset( $markup[ 'Header' ][ 'File' ] ) ) {
+							foreach( $markup[ 'Header' ][ 'File' ] as $file ) {
+								if( isset( $file[ 'Filename' ] ) && $file[ 'Filename' ] != '' ) {
+									if( !in_array( $file[ 'Filename' ], $projectIds ) ) {
+										$projectIds[] = $file[ 'Filename' ];
+									}
 								}
 							}
 						}
 					}
 				}
-			}
+				sort( $projectIds );
 ?>
 				<h3><?php _e( 'Some issues are not linked to revisions and/or projects', 'bim-bcf-management' ); ?></h3>
 				<table class="issue-table" id="update-issue-revision-table">
@@ -371,17 +385,17 @@ class BIMBCFManagement {
 						<th><?php _e( 'Revision', 'bim-bcf-management' ); ?></th>
 					</tr>
 <?php
-			$index = 0;
-			foreach( $unsetIssues as $unsetIssue ) {
-				$author = get_post_meta( $unsetIssue->ID, 'Author', true );
-				$timestamp = strtotime( $unsetIssue->post_date );
-				$markups = get_post_meta( $unsetIssue->ID, 'markup' );
-				$files = 0;
-				foreach( $markups as $markup ) {
-					if( isset( $markup[ 'Header' ][ 'File' ] ) && is_array( $markup[ 'Header' ][ 'File' ] ) ) {
-						$files += count( $markup[ 'Header' ][ 'File' ] );
+				$index = 0;
+				foreach( $unsetIssues as $unsetIssue ) {
+					$author = get_post_meta( $unsetIssue->ID, 'Author', true );
+					$timestamp = strtotime( $unsetIssue->post_date );
+					$markups = get_post_meta( $unsetIssue->ID, 'markup' );
+					$files = 0;
+					foreach( $markups as $markup ) {
+						if( isset( $markup[ 'Header' ][ 'File' ] ) && is_array( $markup[ 'Header' ][ 'File' ] ) ) {
+							$files += count( $markup[ 'Header' ][ 'File' ] );
+						}
 					}
-				}
 ?>
 					<tr class="issue-pending <?php print( $index % 2 == 0 ? 'even' : 'odd' ); ?>" id="issue-<?php print( $unsetIssue->ID ); ?>">
 						<td><?php print( get_the_post_thumbnail( $unsetIssue->ID, 'issue-list-thumb' ) ); ?></td>
@@ -393,9 +407,9 @@ class BIMBCFManagement {
 						<td class="revision"></td>
 					</tr>
 <?php
-				$index ++;
-			}
-			$bimsieServers = BIMBCFManagement::getBimsieServers();
+					$index ++;
+				}
+				$bimsieServers = BIMBCFManagement::getBimsieServers();
 ?>
 				</table>
 				<script type="text/javascript">
@@ -421,7 +435,7 @@ class BIMBCFManagement {
 					};
 				</script>
 <?php
-		} else {
+			} else {
 ?>
 			<form method="post" action="" enctype="multipart/form-data">
 				<label for="bcf-zip-file"><?php _e( 'Select a BCF zip archive', 'bim-bcf-management' ); ?></label><br />
@@ -430,8 +444,14 @@ class BIMBCFManagement {
 				<input type="submit" value="<?php _e( 'Add', 'bim-bcf-management' ); ?>" />
 			</form>
 <?php
+			}
+		} else {
+?>
+		<p><?php _e( 'Please log in to access this page', 'bim-bcf-management' ); ?></p>
+<?php
 		}
 	}
+	
 
 	private static function addIssueFromZip( $files ) {
 		$guid = '';
@@ -450,24 +470,20 @@ class BIMBCFManagement {
 				// extract the XML from the markup
 				$xml = simplexml_load_string( $file[2] );
 				$markup = BIMBCFManagement::convertSimpleXML2Array( $xml );
-			} elseif( $file[1] == 'viewpoint.bcfv' || substr( $file[1], strlen( $file[1] ) - 5 ) == '.bcfv' ) {
-				//print( "viewpoint found: {$file[1]}<br />" );
+			} elseif( substr( $file[1], -5 ) == '.bcfv' ) {
 				// extract the XML from viewpoint
 				$xml = simplexml_load_string( $file[2] );
 				$viewpoints[] = BIMBCFManagement::convertSimpleXML2Array( $xml );
 			} elseif( $file[1] == 'project.bcfp' ) {
-				//print( "project file found: {$file[1]}<br />" );
 				// extract the XML from the project file
 				$xml = simplexml_load_string( $file[2] );
 				$project = BIMBCFManagement::convertSimpleXML2Array( $xml );
 			} else {
-				//print( "snapshot found: {$file[1]}<br />" );
 				// This should be a screenshot file
 				// store this to be added after we created the issue post
 				$snapshots[] = Array( $file[1], $file[2] );
 			}
 		}
-		//var_dump( $guid, $markup, $project, $viewpoints );
 		// Create a post with information from the XML issue
 		$options = BIMBCFManagement::getOptions();
 		$currentUserId = get_current_user_id();
@@ -487,10 +503,32 @@ class BIMBCFManagement {
 		if( $postId > 0 ) {
 			// Set post meta so we know this issue has yet to be attached to a project/revision
 			add_post_meta( $postId, 'import_status', 'pending', true );
-
 			
-			// Replace backslashes with slashes to prevent escape issues
-			$markup = str_replace( '\\', '/', $markup );
+			// Add snapshots as attachments (first one is the thumbnail!)
+			$snapshotIds = Array();
+			$first = true;
+			foreach( $snapshots as $snapshot ) {
+				$id = BIMBCFManagement::writeSnapshot( $postId, $snapshot, $first );
+				if( $id !== false ) {
+					$snapshotIds[] = Array( 'id' => $id, 'file' => $snapshot[0] );
+				}
+				if( $first ) {
+					$first = false;
+				}
+			}
+			
+			// TODO: some data processing to set things right!
+			if( isset( $markup[ 'Viewpoints' ] ) && is_array( $markup[ 'Viewpoints' ] ) ) {
+				foreach( $markup[ 'Viewpoints' ] as &$viewpoint ) {
+					foreach( $snapshotIds as $snapshot ) {
+						if( $snapshot[ 'file'] == $viewpoint[ 'Snapshot' ] ) { // TODO: might need some more validation, not sure how Snapshot string will be filled
+							$viewpoint[ 'Snapshot' ] = wp_get_attachment_url( $snapshot[ 'id' ] );
+							break 1;
+						}
+					} 
+				}
+			}
+
 			// Store XML stuff in post meta
 			add_post_meta( $postId, 'markup', $markup, true );
 
@@ -510,27 +548,14 @@ class BIMBCFManagement {
 				}
 			}
 			foreach( $viewpoints as $viewpoint ) {
-				add_post_meta( $postId, 'viewpoint', $viewpoint, false );
+				add_post_meta( $postId, 'visualizationinfo', $viewpoint, false );
 			}
 
 			// TODO: Could set some more values to filter on for this issue
 
 			// If a project is set, add it as post meta
 			if( $project !== false ) {
-				// TODO: this should be set, but could check it to be sure
-				add_post_meta( $postId, 'ProjectId', $project[ '@attributes' ][ 'ProjectId' ], true );
-				if( isset( $project[ 'Name' ] ) ) {
-					add_post_meta( $postId, 'ProjectName', $project[ 'Name' ], true );
-				}
-			}
-
-			// Add snapshots as attachments (first one is the thumbnail!)
-			$first = true;
-			foreach( $snapshots as $snapshot ) {
-				BIMBCFManagement::writeSnapshot( $postId, $snapshot, $first );
-				if( $first ) {
-					$first = false;
-				}
+				add_post_meta( $postId, 'projectextension', $project );
 			}
 			return true;
 		} else {
@@ -579,17 +604,24 @@ class BIMBCFManagement {
 				if( $first ) {
 					set_post_thumbnail( $postId, $attachId );
 				}
+				return $attachId;
 			} else {
 				return false;
 			}
+		} else {
+			return false;
 		}
 	}
 
 	public static function convertSimpleXML2Array( $simpleXMLObject ) {
 		// We expect there to not be any elements with the name attributes
-		$xmlArray = Array( '@attributes' => Array() );
+		$xmlArray = Array();
+		$attributes = Array();
 		foreach( $simpleXMLObject->attributes() as $attributeName => $attributeValue ) {
-			$xmlArray[ '@attributes' ][$attributeName] = '' . $attributeValue;
+			$attributes[$attributeName] = '' . $attributeValue;
+		}
+		if( count( $attributes ) > 0 ) {
+			$xmlArray[ '@attributes' ] = $attributes;
 		}
 		$simpleXMLObject = ( Array ) $simpleXMLObject;
 		foreach( $simpleXMLObject as $key => $value ) {
@@ -606,7 +638,7 @@ class BIMBCFManagement {
 					$xmlArray[$key] = BIMBCFManagement::convertSimpleXML2Array( $value );
 				} else {
 					// Could happen if a boolean or integer is found, but not sure if SimpleXML casts those to none string type
-					print( "Unexpected value in XML object: $key => $value<br />\n" );
+					//print( "Unexpected value in XML object: $key => $value<br />\n" );
 					$xmlArray[$key] = $value;
 				}
 			}
@@ -615,13 +647,14 @@ class BIMBCFManagement {
 	}
 
 	public static function showAddIssueForm() {
-		$options = BIMBCFManagement::getOptions();
-		$topicStatuses = explode( ',', $options[ 'topic_statuses' ] );
-		$topicTypes = explode( ',', $options[ 'topic_types' ] );
-		$topicLabels = explode( ',', $options[ 'topic_labels' ] );
-		$snippetTypes = explode( ',', $options[ 'snippet_types' ] );
-		$priorities = explode( ',', $options[ 'priorities' ] );
-		$userIdTypes = explode( ',', $options[ 'user_id_types' ] );
+		if( is_user_logged_in() ) {
+			$options = BIMBCFManagement::getOptions();
+			$topicStatuses = explode( ',', $options[ 'topic_statuses' ] );
+			$topicTypes = explode( ',', $options[ 'topic_types' ] );
+			$topicLabels = explode( ',', $options[ 'topic_labels' ] );
+			$snippetTypes = explode( ',', $options[ 'snippet_types' ] );
+			$priorities = explode( ',', $options[ 'priorities' ] );
+			$userIdTypes = explode( ',', $options[ 'user_id_types' ] );
 ?>
 			<form method="post" action="" id="add-issue-form">
 				<h3><?php _e( 'Markup', 'bim-bcf-management' ); ?></h3>
@@ -638,8 +671,7 @@ class BIMBCFManagement {
 					<input type="text" id="file-ifcproject-0" name="file_ifcproject[]" /><br />
 					<label for="file-ifcspatial-0"><?php _e( 'Ifc Spatial Structure Element', 'bim-bcf-management' ); ?></label>
 					<input type="text" id="file-ifcspatial-0" name="file_spatial[]" /><br />
-					<input type="checkbox" id="file-isexternal-0" name="file_isexternal[]" value="true" />
-					<label for="file-isexternal-0"><?php _e( 'Is external', 'bim-bcf-management' ); ?></label><br />
+					File must be external<br />
 				</div>
 				<a href="#" class="more-items" id="more-file"><?php _e( 'Add file', 'bim-bcf-management' ); ?></a><br />
 				<h4><?php _e( 'Topic', 'bim-bcf-management' ); ?></h4>
@@ -653,31 +685,31 @@ class BIMBCFManagement {
 					<label for="topic-label"><?php _e( 'Label', 'bim-bcf-management' ); ?></label>
 					<select id="topic-label" name="topic_label">
 <?php 
-			foreach( $topicLabels as $topicLabel ) {
+				foreach( $topicLabels as $topicLabel ) {
 ?>
 						<option value="<?php print( trim( $topicLabel ) ); ?>"><?php print( trim( $topicLabel ) ); ?></option>
 <?php
-			}
+				}
 ?>					
 					</select><br />
 					<label for="topic-type"><?php _e( 'Type', 'bim-bcf-management' ); ?></label>
 					<select id="topic-type" name="topic_type">
 <?php 
-			foreach( $topicTypes as $topicType ) {
+				foreach( $topicTypes as $topicType ) {
 ?>
 						<option value="<?php print( trim( $topicType ) ); ?>"><?php print( trim( $topicType ) ); ?></option>
 <?php
-			}
+				}
 ?>					
 					</select><br />
 					<label for="topic-status"><?php _e( 'Status', 'bim-bcf-management' ); ?></label>
 					<select id="topic-status" name="topic_status">
 <?php 
-			foreach( $topicStatuses as $topicStatus ) {
+				foreach( $topicStatuses as $topicStatus ) {
 ?>
 						<option value="<?php print( trim( $topicStatus ) ); ?>"><?php print( trim( $topicStatus ) ); ?></option>
 <?php
-			}
+				}
 ?>					
 					</select><br />
 					<label for="topic-guid"><?php _e( 'Guid', 'bim-bcf-management' ); ?></label>
@@ -692,12 +724,12 @@ class BIMBCFManagement {
 					<input type="time" id="topic-modified-time" name="topic_modified_time" /><br />
 					<label for="assigned-to"><?php _e( 'Assigned to', 'bim-bcf-management' ); ?></label>
 					<select id="assigned-to" name="assigned_to">
-<?php 
-			foreach( $userIdTypes as $userIdType ) {
+<?php 	
+				foreach( $userIdTypes as $userIdType ) {
 ?>
 						<option value="<?php print( trim( $userIdType ) ); ?>"><?php print( trim( $userIdType ) ); ?></option>
 <?php
-			}
+				}
 ?>					
 					</select><br />
 					<h5><?php _e( 'Bim Snippet', 'bim-bcf-management' ); ?></h5>
@@ -708,11 +740,11 @@ class BIMBCFManagement {
 					<label for="bim-snippet-type"><?php _e( 'Bim Snippet Type', 'bim-bcf-management' ); ?></label>
 					<select id="bim-snippet-type" name="bim_snippet_type">
 <?php 
-			foreach( $snippetTypes as $snippetType ) {
+				foreach( $snippetTypes as $snippetType ) {
 ?>
 						<option value="<?php print( trim( $snippetType ) ); ?>"><?php print( trim( $snippetType ) ); ?></option>
 <?php
-			}
+				}
 ?>					
 					</select><br />
 					<input type="checkbox" id="bim-snippet-isexternal" name="bim_snippet_isexternal" value="true" />
@@ -862,6 +894,11 @@ class BIMBCFManagement {
 				Note: Comments can be added after the issue is created
 			</form>
 <?php
+		} else {
+?>
+			<p><?php _e( 'Please log in to access this page', 'bim-bcf-management' ); ?></p>
+<?php
+		}
 	}
 
 	public static function getOptions( $forceReload = false ) {
@@ -922,48 +959,64 @@ class BIMBCFManagement {
 		$projectsMissingRevisions = Array();
 
 		if( count( $unsetIssues ) > 0 ) {
-			$projectIds = Array();
 			$projectIdsCheck = Array();
 			foreach( $unsetIssues as $unsetIssue ) {
-				$markups = get_post_meta( $unsetIssue->ID, 'markup' );
-				foreach( $markups as $markup ) {
-					if( isset( $markup[ 'Header' ][ 'File' ] ) ) {
-						foreach( $markup[ 'Header' ][ 'File' ] as $file ) {
-							if( isset( $file[ '@attributes' ] ) && isset( $file[ '@attributes' ][ 'IfcProject' ] ) && $file[ '@attributes' ][ 'IfcProject' ] != '' ) {
-								if( !in_array( $file[ '@attributes' ][ 'IfcProject' ] . $file[ 'Filename' ], $projectIdsCheck ) ) {
-									$projectIdsCheck[] = $file[ '@attributes' ][ 'IfcProject' ] . $file[ 'Filename' ];
-									$projectIds[] = $file[ '@attributes' ][ 'IfcProject' ];
-								}
+				$markup = get_post_meta( $unsetIssue->ID, 'markup', true );
+				if( isset( $markup[ 'Header' ][ 'File' ] ) ) {
+					foreach( $markup[ 'Header' ][ 'File' ] as $file ) {
+						if( isset( $file[ 'Filename' ] ) && $file[ 'Filename' ] != '' ) {
+							if( !in_array( $file[ 'Filename' ], $projectIdsCheck ) ) {
+								$projectIdsCheck[] = $file[ 'Filename' ];
 							}
 						}
 					}
 				}
 			}
+			sort( $projectIdsCheck );
 			// We fill this array with the projects where we have no revision yet
-			if( count( $projectIds ) == count( $projects ) ) { // This should match... how can it not?
+			if( count( $projectIdsCheck ) == count( $projects ) ) { // This should match... how can it not?
 				$allDone = true;
 				foreach( $unsetIssues as $unsetIssue ) {
-					$markups = get_post_meta( $unsetIssue->ID, 'markup' );
+					$markup = get_post_meta( $unsetIssue->ID, 'markup', true );
 					delete_post_meta( $unsetIssue->ID, 'project' );
+					delete_post_meta( $unsetIssue->ID, 'poid' );
+					$poids = Array();
+					delete_post_meta( $unsetIssue->ID, 'roid' );
+					$roids = Array();
 					$issueDone = true;
-					foreach( $markups as $markup ) {
-						if( isset( $markup[ 'Header' ][ 'File' ] ) ) {
-							foreach( $markup[ 'Header' ][ 'File' ] as $file ) {
-								if( isset( $file[ '@attributes' ] ) && isset( $file[ '@attributes' ][ 'IfcProject' ] ) && $file[ '@attributes' ][ 'IfcProject' ] != '' ) {
-									foreach( $projectIds as $key => $value ) {
-										if( $projectIdsCheck[$key] == $file[ '@attributes' ][ 'IfcProject' ] . $file[ 'Filename' ] ) {
-											// We found the right project guid
-											// store the project oid for this issue
-											add_post_meta( $unsetIssue->ID, 'project', Array( 'ifcProject' => $value, 'file' => $file[ 'Filename' ], 'name' => ( isset( $projectNames[$key] ) ? $projectNames[$key] : '' ), 'oid' => $projects[$key], 'revision' => ( ( isset( $revisions[$key] ) && $revisions[$key] != '' ) ? $revisions[$key] : -1 ) ) );
-											if( !isset( $projectsMissingRevisions[$key] ) ) {
-												$projectsMissingRevisions[$key] = Array( 'ifcProject' => $value, 'file' => $file[ 'Filename' ], 'oid' => $projects[$key], 'name' => ( isset( $projectNames[$key] ) ? $projectNames[$key] : '' ), 'revision' => ( ( isset( $revisions[$key] ) && $revisions[$key] != '' ) ? $revisions[$key] : -1 ) );
-											}
-											if( !isset( $revisions[$key] ) || $revisions[$key] == '' || $revisions[$key] == -1 ) {
-												$issueDone = false;
-												$allDone = false;
-											}
-											break 1;
+					if( isset( $markup[ 'Header' ][ 'File' ] ) ) {
+						foreach( $markup[ 'Header' ][ 'File' ] as &$file ) {
+							if( isset( $file[ 'Filename' ] ) && $file[ 'Filename' ] != '' ) {
+								foreach( $projectIdsCheck as $key => $value ) {
+									if( $value == $file[ 'Filename' ] ) {
+										// We found the right project file
+										// store the project oid for this issue
+										add_post_meta( $unsetIssue->ID, 'project', Array( 'ifcProject' => $value, 'file' => $file[ 'Filename' ], 'name' => ( isset( $projectNames[$key] ) ? $projectNames[$key] : '' ), 'oid' => $projects[$key], 'revision' => ( ( isset( $revisions[$key] ) && $revisions[$key] != '' ) ? $revisions[$key] : -1 ) ) );
+										// For lookup performance we place this also as poid and roid
+										if( isset( $projects[$key] ) && $projects[$key] != '' && !in_array( $projects[$key], $poids ) ) {
+											add_post_meta( $unsetIssue->ID, 'poid', $projects[$key] );
+											$poids[] = $projects[$key];
+											$file[ 'poid' ] = $projects[$key];
 										}
+										if( isset( $revisions[$key] ) && $revisions[$key] != '' && $revisions[$key] != -1 && !in_array( $revisions[$key], $roids ) ) {
+											add_post_meta( $unsetIssue->ID, 'roid', $revisions[$key] );
+											$roids[] = $revisions[$key];
+											$file[ 'roid' ] = $revisions[$key];
+										}
+										if( !isset( $projectsMissingRevisions[$key] ) ) {
+											$projectsMissingRevisions[$key] = Array( 'ifcProject' => $value, 'file' => $file[ 'Filename' ], 'oid' => $projects[$key], 'name' => ( isset( $projectNames[$key] ) ? $projectNames[$key] : '' ), 'revision' => ( ( isset( $revisions[$key] ) && $revisions[$key] != '' ) ? $revisions[$key] : -1 ) );
+										}
+										if( !isset( $revisions[$key] ) || $revisions[$key] == '' || $revisions[$key] == -1 ) {
+											$issueDone = false;
+											$allDone = false;
+										}
+										// TODO: replace filename with url
+										//$file[ 'Filename' ] = Bimsie url
+										if( !isset( $file[ '@attributes' ] ) ) {
+											$file[ '@attributes' ] = Array();
+										}
+										$file[ '@attributes' ][ 'isExternal' ] = true;
+										break 1;
 									}
 								}
 							}
@@ -971,14 +1024,73 @@ class BIMBCFManagement {
 					}
 					if( $issueDone ) {
 						update_post_meta( $unsetIssue->ID, 'import_status', 'complete' );
+						update_post_meta( $unsetIssue->ID, 'markup', $markup );
 					}
 				}
+				ksort( $projectsMissingRevisions );
 			}
 		}
 		if( $allDone ) {
 			$projectsMissingRevisions = Array();
 		}
 		return $projectsMissingRevisions;
+	}
+	
+	public static function setBimsieUriForPendingIssues( $uri ) {
+		$options = BIMBCFManagement::getOptions();
+		$unsetIssues = get_posts( Array(
+				'post_type' => $options[ 'bcf_issue_post_type' ],
+				'posts_per_page' => -1,
+				'author' => get_current_user_id(),
+				'meta_query' => Array(
+						Array(
+								'key' => 'import_status',
+								'value' => 'pending'
+						)
+				)
+		) );
+		foreach( $unsetIssues as $issue ) {
+			update_post_meta( $issue->ID, '_bimsie_uri', $uri );
+		}
+	}
+	
+	public static function getIssuesByProjectRevision( $bimsieUrl, $poid, $roid ) {
+		$options = BIMBCFManagement::getOptions();
+		$bimsieUrl = str_replace( 'https://', '', $bimsieUrl );
+		$bimsieUrl = str_replace( 'http://', '', $bimsieUrl );
+		$issues = get_posts( Array(
+				'post_type' => $options[ 'bcf_issue_post_type' ],
+				'posts_per_page' => -1,
+				'author' => get_current_user_id(),
+				'meta_query' => Array(
+						'relation' => 'AND',
+						Array(
+								'key' => 'import_status',
+								'value' => 'complete'
+						),
+						Array(
+								'key' => '_bimsie_uri',
+								'value' => $bimsieUrl
+						),
+						Array(
+								'key' => 'poid',
+								'value' => $poid
+						),
+						Array(
+								'key' => 'roid',
+								'value' => $roid
+						)
+				)
+		) );
+		return $issues;
+	}
+	
+	public static function getJSONFromIssue( $issue ) {
+		$jsonIssue = Array();
+		$jsonIssue[ 'markup' ] = get_post_meta( $issue->ID, 'markup', true );
+		$jsonIssue[ 'visualizationinfo' ] = get_post_meta( $issue->ID, 'visualizationinfo' );
+		$jsonIssue[ 'projectextension' ] = get_post_meta( $issue->ID, 'projectextension', true );
+		return $jsonIssue;
 	}
 }
 

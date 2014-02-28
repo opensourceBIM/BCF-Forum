@@ -4,13 +4,13 @@ include( '../../../wp-config.php' );
 // TODO: add functions and implement functions
 $supportedCalls = Array(
 	'Bimsie1AuthInterface' => Array(
-		'getAccessMethod',
-		'isLoggedIn',
-		'login',
-		'logout',
+		'getAccessMethod' => Array(),
+		'isLoggedIn' => Array(),
+		'login' => Array( 'username', 'password' ),
+		'logout' => Array(),
 	),
 	'Bimsie1BcfInterface' => Array(
-			
+		'getIssuesByProjectRevision' => Array( 'bimsieUrl', 'poid', 'roid' )
 	)
 );
 
@@ -30,7 +30,7 @@ if( isset( $request ) ) {
 			&& isset( $request[ 'request' ][ 'method' ] ) 
 			&& isset( $request[ 'request' ][ 'parameters' ] ) ) {
 		if( isset( $supportedCalls[$request[ 'request' ][ 'interface' ]] ) 
-				&& in_array( $request[ 'request' ][ 'method' ], $supportedCalls[$request[ 'request' ][ 'interface' ]] ) ) {
+				&& isset( $supportedCalls[$request[ 'request' ][ 'interface' ]][$request[ 'request' ][ 'method' ]] ) ) {
 			if( $request[ 'request' ][ 'interface' ] == 'Bimsie1AuthInterface' ) {
 				if( $request[ 'request' ][ 'method' ] == 'getAccessMethod' ) {
 					$result = 'JSON';
@@ -40,15 +40,16 @@ if( isset( $request ) ) {
 						$invalid = true;
 						$errorType = 'UserException';
 						$errorMessage = __( 'Invalid username/password combination', 'bim-bcf-management' );
-					}
-					$token = BIMsie::login( $request[ 'request' ][ 'parameters' ][ 'username' ], $request[ 'request' ][ 'parameters' ][ 'password' ] );
-					// get user id and hash, if it exists
-					if( $token === false ) {
-						$invalid = true;
-						$errorType = 'UserException';
-						$errorMessage = __( 'Invalid username/password combination', 'bim-bcf-management' );
 					} else {
-						$result = $token;
+						$token = BIMsie::login( $request[ 'request' ][ 'parameters' ][ 'username' ], $request[ 'request' ][ 'parameters' ][ 'password' ] );
+						// get user id and hash, if it exists
+						if( $token === false ) {
+							$invalid = true;
+							$errorType = 'UserException';
+							$errorMessage = __( 'Invalid username/password combination', 'bim-bcf-management' );
+						} else {
+							$result = $token;
+						}
 					}
 				} elseif( $request[ 'request' ][ 'method' ] == 'logout' ) {
 					if( isset( $request[ 'token' ] ) && $request[ 'token' ] != '' ) {
@@ -80,6 +81,22 @@ if( isset( $request ) ) {
 				}
 			} elseif( $request[ 'request' ][ 'interface' ] == 'Bimsie1BcfInterface' ) {
 				// TODO: BCF methods here
+				if( $request[ 'request' ][ 'method' ] == 'getIssuesByProjectRevision' ) {
+					if( isset( $request[ 'request' ][ 'parameters' ][ 'bimsieUrl' ] ) && $request[ 'request' ][ 'parameters' ][ 'bimsieUrl' ] != '' && 
+							isset( $request[ 'request' ][ 'parameters' ][ 'poid' ] ) && is_numeric( $request[ 'request' ][ 'parameters' ][ 'poid' ] ) &&
+							isset( $request[ 'request' ][ 'parameters' ][ 'roid' ] ) && is_numeric( $request[ 'request' ][ 'parameters' ][ 'roid' ] ) ) {
+						// return list of issues for the current user with the right server/poid/roid combi
+						$issues = BIMBCFManagement::getIssuesByProjectRevision( $request[ 'request' ][ 'parameters' ][ 'bimsieUrl' ], $request[ 'request' ][ 'parameters' ][ 'poid' ], $request[ 'request' ][ 'parameters' ][ 'roid' ] );
+						$result = Array();
+						foreach( $issues as $issue ) {
+							$result[] = BIMBCFManagement::getJSONFromIssue( $issue );
+						}
+					} else { 
+						$invalid = true;
+						$errorType = 'InvalidRequest';
+						$errorMessage  = __( 'Unsupported interface or method, check supported methods by browsing to: ', 'bim-bcf-management' ) . plugins_url( 'api.php', __FILE__ );
+					}
+				}
 			}
 		} else {
 			$invalid = true;
@@ -126,9 +143,9 @@ if( isset( $request ) ) {
 				<?php print( $interface ); ?>
 				<ul>
 <?php
-		foreach( $methods as $method ) {
+		foreach( $methods as $method => $parameters ) {
 ?>
-					<li><?php print( $method ); ?></li>
+					<li><?php print( $method . '(' . implode( ', ', $parameters ) . ')' ); ?></li>
 <?php
 		} 
 ?>					

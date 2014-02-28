@@ -95,6 +95,8 @@ if( isset( $_POST[ 'method' ] ) ) {
 			if( isset( $projects ) ) {
 				$projects = ( Array ) $projects;
 				$response[ 'projects' ] = $projects;
+				// at this point we set the  bimsie server per pending issue
+				BIMBCFManagement::setBimsieUriForPendingIssues( $uri );
 			}
 			if( isset( $error ) && $error !== false ) {
 				$response[ 'error' ] = $error;
@@ -110,15 +112,24 @@ if( isset( $_POST[ 'method' ] ) ) {
 			$revisions = explode( ',', $revisions );
 			$projectsLackingRevision = BIMBCFManagement::setProjectForPendingIssues( $projects, $names, $revisions );
 			foreach( $projectsLackingRevision as $key => $project ) {
-				$bimsieResponse = BIMsie::request( $uri, $token, 'Bimsie1ServiceInterface', 'getAllRevisionsOfProject', Array( 'poid' => $project[ 'oid' ] ) );
-				$error = BIMsie::getErrorMessage( $bimsieResponse );
-				if( $error === false && isset( $bimsieResponse->response ) && isset( $bimsieResponse->response->result ) ) {
-					$projectsLackingRevision[$key][ 'revisions' ] = $bimsieResponse->response->result;
-				} else {
-					if( isset( $response[ 'error' ] ) ) {
-						$response[ 'error' ] .= '<br />' . $error;
+				if( $project[ 'oid' ] != '' ) {
+					$bimsieResponse = BIMsie::request( $uri, $token, 'Bimsie1ServiceInterface', 'getAllRevisionsOfProject', Array( 'poid' => $project[ 'oid' ] ) );
+					$error = BIMsie::getErrorMessage( $bimsieResponse );
+					if( $error === false && isset( $bimsieResponse->response ) && isset( $bimsieResponse->response->result ) ) {
+						$projectsLackingRevision[$key][ 'revisions' ] = $bimsieResponse->response->result;
+						foreach( $projectsLackingRevision[$key][ 'revisions' ] as $key2 => $revision ) {
+							if( isset( $revision->date ) && is_numeric( $revision->date ) ) {
+								$projectsLackingRevision[$key][ 'revisions' ][$key2]->dateString = date( 'd-m-Y H:i', $revision->date * 0.001 );
+							} else {
+								$projectsLackingRevision[$key][ 'revisions' ][$key2]->dateString = __( 'unknown', 'bim-bcf-management' );
+							}
+						}
 					} else {
-						$response[ 'error' ] = $error;
+						if( isset( $response[ 'error' ] ) ) {
+							$response[ 'error' ] .= '<br />' . $error;
+						} else {
+							$response[ 'error' ] = $error;
+						}
 					}
 				}
 			}
