@@ -162,6 +162,7 @@ BIMBCFManagement.showServerSelection = function() {
 		} else {
 			jQuery( "#bim-bcf-management-overlay .toggle-server-info" ).addClass( "hidden" );
 		}
+		BIMBCFManagement.overlayAutoHeight();
 	} );
 	BIMBCFManagement.overlayAutoHeight();
 };
