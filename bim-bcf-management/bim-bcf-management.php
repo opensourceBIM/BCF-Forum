@@ -140,6 +140,7 @@ class BIMBCFManagement {
 					'posts_per_page' => -1,
 					'post_type' => $options[ 'bcf_issue_post_type' ],
 					'post_status' => 'publish',
+					'author' => get_current_user_id(),
 					'orderby' => 'date',
 					'order' => 'DESC',
 					'meta_query' => Array(
