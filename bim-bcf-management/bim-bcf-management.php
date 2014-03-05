@@ -599,9 +599,9 @@ class BIMBCFManagement {
 	}
 
 	// Import issue from json data and set all special fields
-	private static function addIssue( $jsonIssue ) {
+	private static function addIssue( $jsonIssue, $userId = -1 ) {
 		$options = BIMBCFManagement::getOptions();
-		$currentUserId = get_current_user_id();
+		$currentUserId = $userId == -1 ? get_current_user_id() : $userId;
 		
 		if( isset( $jsonIssue ) && isset( $jsonIssue[ 'markup' ] ) && isset( $jsonIssue[ 'visualizationinfo' ] ) ) {
 			// TODO: place information in special fields for faster access

@@ -13,7 +13,8 @@ $supportedCalls = Array(
 		'logout' => Array(),
 	),
 	'Bimsie1BcfInterface' => Array(
-		'getIssuesByProjectRevision' => Array( 'bimsieUrl', 'poid', 'roid' )
+		'getIssuesByProjectRevision' => Array( 'bimsieUrl', 'poid', 'roid' ),
+		'addIssue' => Array( 'issue' ),
 	)
 );
 
@@ -83,7 +84,6 @@ if( isset( $request ) ) {
 					}
 				}
 			} elseif( $request[ 'request' ][ 'interface' ] == 'Bimsie1BcfInterface' ) {
-				// TODO: BCF methods here
 				if( $request[ 'request' ][ 'method' ] == 'getIssuesByProjectRevision' ) {
 					if( isset( $request[ 'request' ][ 'parameters' ][ 'bimsieUrl' ] ) && $request[ 'request' ][ 'parameters' ][ 'bimsieUrl' ] != '' &&
 							isset( $request[ 'request' ][ 'parameters' ][ 'poid' ] ) && is_numeric( $request[ 'request' ][ 'parameters' ][ 'poid' ] ) &&
@@ -105,6 +105,22 @@ if( isset( $request ) ) {
 						$invalid = true;
 						$errorType = 'InvalidRequest';
 						$errorMessage  = __( 'Unsupported interface or method, check supported methods by browsing to: ', 'bim-bcf-management' ) . plugins_url( 'api.php', __FILE__ );
+					}
+				} elseif( $request[ 'request' ][ 'method' ] == 'addIssue' ) {
+					$userId = BIMsie::getUserIdByToken( $request[ 'token' ] );
+					if( $userId !== false ) {
+						$data = false;
+						if( isset( $request[ 'request' ][ 'parameters' ][ 'issue' ] ) ) {
+							$result = BIMBCFManagement::addIssue( $request[ 'request' ][ 'parameters' ][ 'issue' ], $userId ) !== false;
+						} else {
+							$invalid = true;
+							$errorType = 'InvalidRequest';
+							$errorMessage  = __( 'Unsupported interface or method, check supported methods by browsing to: ', 'bim-bcf-management' ) . plugins_url( 'api.php', __FILE__ );
+						}
+					} else {
+						$invalid = true;
+						$errorType = 'UserException';
+						$errorMessage = __( 'Invalid token', 'bim-bcf-management' );
 					}
 				}
 			}
