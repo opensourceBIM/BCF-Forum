@@ -50,6 +50,8 @@ class BIMBCFManagement {
 		add_action( 'init', Array( 'BIMBCFManagement', 'wordPressInit' ) );
 		// Add script files
 		add_action( 'wp_enqueue_scripts', Array( 'BIMBCFManagement', 'enqueueScripts' ) );
+		// Keep track of new comments to place them in the right data format
+		add_action( 'preprocess_comment' , Array( 'BIMBCFManagement', 'preprocessCommentHandler' ) );
 
 		// --- Add shortcodes ---
 		add_shortcode( 'showIssues', Array( 'BIMBCFManagement', 'showIssues' ) );
@@ -210,6 +212,19 @@ class BIMBCFManagement {
 			}
 			if( $issueId != -1 ) {
 				$options = BIMBCFManagement::getOptions();
+				$topicStatuses = explode( ',', $options[ 'topic_statuses' ] );
+				$topicStatusesOptions = '';
+				foreach( $topicStatuses as $topicStatus ) {
+					$topicStatusesOptions .= '<option value="' . $topicStatus . '">' . $topicStatus . '</option>';
+				}
+				$priorities = explode( ',', $options[ 'priorities' ] );
+				$prioritiesOptions = '';
+				foreach( $priorities as $priority ) {
+					$prioritiesOptions .= '<option value="' . $priority . '">' . $priority . '</option>';
+				}
+				$extraFieldsHtml = '<p class="comment-extra-field"><label for="Status">' . __( 'Status', 'bim-bcf-management' ) . '</label><input type="text" id="Status" name="Status" /></p>';
+				$extraFieldsHtml .= '<p class="comment-extra-field"><label for="VerbalStatus">' . __( 'VerbalStatus', 'bim-bcf-management' ) . '</label><select id="VerbalStatus" name="VerbalStatus">' . $topicStatusesOptions . '</select></p>';
+				$extraFieldsHtml .= '<p class="comment-extra-field"><label for="Priority">' . __( 'Priority', 'bim-bcf-management' ) . '</label><select id="Priority" name="Priority">' . $prioritiesOptions . '</select></p>';
 				$currentUserId = get_current_user_id();
 				$issue = get_post( $issueId );
 				if( $issue->post_author == $currentUserId && $issue->post_type == $options[ 'bcf_issue_post_type' ] ) {
@@ -226,9 +241,9 @@ class BIMBCFManagement {
 						}
 						$revisions .= $project[ 'revision' ];
 					}
-					$author = get_post_meta( $issue->ID, 'Author', true );
-					$verbalStatus = get_post_meta( $issue->ID, 'VerbalStatus', true );
-					$status = get_post_meta( $issue->ID, 'Status', true );
+					//$author = get_post_meta( $issue->ID, 'Author', true );
+					//$verbalStatus = get_post_meta( $issue->ID, 'VerbalStatus', true );
+					//$status = get_post_meta( $issue->ID, 'Status', true );
 					$timestamp = strtotime( $issue->post_date );
 ?>
 			<div class="issue-image"><?php print( get_the_post_thumbnail( $issueId, 'issue-detail-thumb' ) ); ?></div>
@@ -240,10 +255,6 @@ class BIMBCFManagement {
 					<td><?php print( date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp ) ); ?></td>
 				</tr>
 				<tr>
-					<td><?php _e( 'Author', 'bim-bcf-management' ); ?></td>
-					<td><?php print( $author != '' ? $author : '-' );  ?></td>
-				</tr>
-				<tr>
 					<td><?php _e( 'Revision', 'bim-bcf-management' ); ?></td>
 					<td><?php print( $revisions != '' ? $revisions : '-' );  ?></td>
 				</tr>
@@ -251,17 +262,40 @@ class BIMBCFManagement {
 					<td><?php _e( 'Project', 'bim-bcf-management' ); ?></td>
 					<td><?php print( $projectNames != '' ? $projectNames : '-' );  ?></td>
 				</tr>
-				<tr>
+				<!--tr>
 					<td><?php _e( 'Verbal status', 'bim-bcf-management' ); ?></td>
 					<td><?php print( $verbalStatus != '' ? $verbalStatus : '-' );  ?></td>
 				</tr>
 				<tr>
+					<td><?php _e( 'Author', 'bim-bcf-management' ); ?></td>
+					<td><?php print( $author != '' ? $author : '-' );  ?></td>
+				</tr>
+				<tr>
 					<td><?php _e( 'Status', 'bim-bcf-management' ); ?></td>
 					<td><?php print( $status != '' ? $status : '-' );  ?></td>
-				</tr>
+				</tr-->
 
 			</table>
+			<a name="comments"></a>
 <?php
+					$comments = get_comments( Array(
+							'post_id' => $issue->ID
+					) );
+?>
+			<ol class="comment-list">
+<?php
+					wp_list_comments( Array(), $comments );
+?>
+			</ol>
+			<script type="text/javascript">
+				jQuery( document ).ready( function() {
+					jQuery( "#comments" ).remove();
+					jQuery( "#commentform .form-submit" ).append( "<input type=\"hidden\" name=\"redirect_to\" value=\"<?php print( get_bloginfo( 'wpurl' ) . $options[ 'issue_details_uri' ] . '?id=' . $issue->ID ); ?>\" />" );
+				} );
+			</script>
+<?php
+					comment_form( Array( 'comment_notes_after' => $extraFieldsHtml ), $issue->ID );
+
 				} else {
 ?>
 			<p><?php _e( 'Issue not accessible', 'bim-bcf-management' ); ?></p>
@@ -564,9 +598,37 @@ class BIMBCFManagement {
 		}
 	}
 
-	// TODO: Should make a single function for adding issues used by other parts of the import
-	private static function addIssue( $postData, $metaData ) {
-
+	// Import issue from json data and set all special fields
+	private static function addIssue( $jsonIssue ) {
+		$options = BIMBCFManagement::getOptions();
+		$currentUserId = get_current_user_id();
+		
+		if( isset( $jsonIssue ) && isset( $jsonIssue[ 'markup' ] ) && isset( $jsonIssue[ 'visualizationinfo' ] ) ) {
+			// TODO: place information in special fields for faster access
+			$guid = BIMBCFManagement::getRandomGuid();
+			$postData = Array(
+				'post_title' => $guid,
+				'post_content' => '',
+				'post_status' => 'publish',
+				'post_type' => $options[ 'bcf_issue_post_type' ],
+				'post_author' => $currentUserId
+			);
+			$postId = wp_insert_post( $postData );
+			if( $postId > 0 ) {
+				add_post_meta( $postId, 'guid', $guid );
+				add_post_meta( $postId, 'import_status', 'complete', true );
+				add_post_meta( $postId, 'markup', $jsonIssue[ 'markup' ], false );
+				add_post_meta( $postId, 'visualizationinfo', $jsonIssue[ 'visualizationinfo' ], false );
+				if( isset( $jsonIssue[ 'projectextension' ] ) ) {
+					add_post_meta( $postId, 'projectextension', $jsonIssue[ 'projectextension' ], false );
+				}
+				return $postId;
+			} else {
+				return false;
+			}
+		} else {
+			return false;
+		}
 	}
 
 	private static function writeSnapshot( $postId, $snapshot, $first = false ) {
@@ -646,8 +708,21 @@ class BIMBCFManagement {
 		}
 		return $xmlArray;
 	}
+	
+	public static function getUserIdTypes() {
+		global $wpdb;
+		$users = $wpdb->get_results( "SELECT user_email 
+			FROM {$wpdb->users}
+			ORDER BY user_email ASC" );
+		$emails = Array();
+		foreach( $users as $user ) {
+			$emails[] = $user->user_email;
+		}
+		return $emails;
+	}
 
 	public static function showAddIssueForm() {
+		global $wpdb;
 		if( is_user_logged_in() ) {
 			$options = BIMBCFManagement::getOptions();
 			$topicStatuses = explode( ',', $options[ 'topic_statuses' ] );
@@ -655,9 +730,292 @@ class BIMBCFManagement {
 			$topicLabels = explode( ',', $options[ 'topic_labels' ] );
 			$snippetTypes = explode( ',', $options[ 'snippet_types' ] );
 			$priorities = explode( ',', $options[ 'priorities' ] );
-			$userIdTypes = explode( ',', $options[ 'user_id_types' ] );
+			$userIdTypes = BIMBCFManagement::getUserIdTypes();
+			if( isset( $_POST[ 'submit' ] ) ) {
+				$jsonIssue = Array( 
+						'markup' => Array( 
+								'Header' => Array( 'File' => Array() ),
+								'Topic' => Array(),
+								'Comment' => Array(),
+								'Viewpoints' => Array()
+						),
+						'visualizationinfo' => Array(
+								'Components' => Array(),
+								'OrthogonalCamera' => Array(),
+								'PerspectiveCamera' => Array(),
+								'Lines' => Array(),
+								'ClippingPlanes' => Array(),
+								'Bitmap' => Array()
+						)
+				);
+				if( is_array( $_POST[ 'file_filename' ] ) ) {
+					foreach( $_POST[ 'file_filename' ] as $key => $filename ) {
+						if( $filename != '' ) {
+							$jsonIssue[ 'markup' ][ 'Header' ][ 'File' ][] = Array( 
+									'Filename' => $filename,
+									'Date' => isset( $_POST[ 'file_date' ][$key] ) ? $_POST[ 'file_date' ][$key] : date( 'Y-m-d\TH:i:sP' ),
+									'Reference' => isset( $_POST[ 'file_reference' ][$key] ) ? $_POST[ 'file_reference' ][$key] : '',
+									'@attributes' => Array(
+											'isExternal' => true,
+											'IfcProject' => isset( $_POST[ 'file_ifcproject' ][$key] ) ? $_POST[ 'file_ifcproject' ][$key] : '',
+											'IfcSpatialStructureElement' => isset( $_POST[ 'file_spatial' ][$key] ) ? $_POST[ 'file_spatial' ][$key] : '',
+									)
+							);
+						}
+					}
+				}
+				$jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ] = Array( 'Guid' => $_POST[ 'topic_guid' ], 'TopicType' => $_POST[ 'topic_type' ], 'TopicStatus' => $_POST[ 'topic_status' ] );
+				$jsonIssue[ 'markup' ][ 'Topic' ][ 'ReferenceLink' ] = $_POST[ 'topic_referencelink' ];
+				$jsonIssue[ 'markup' ][ 'Topic' ][ 'Title' ] = $_POST[ 'topic_title' ];
+				$jsonIssue[ 'markup' ][ 'Topic' ][ 'Index' ] = $_POST[ 'topic_index' ];
+				$jsonIssue[ 'markup' ][ 'Topic' ][ 'Label' ] = $_POST[ 'topic_label' ];
+				$jsonIssue[ 'markup' ][ 'Topic' ][ 'CreationDate' ] = date( 'Y-m-d\TH:i:sP' );
+				$jsonIssue[ 'markup' ][ 'Topic' ][ 'ModifiedDate' ] = date( 'Y-m-d\TH:i:sP' );
+				$jsonIssue[ 'markup' ][ 'Topic' ][ 'AssignedTo' ] = $_POST[ 'assigned_to' ];
+				$jsonIssue[ 'markup' ][ 'Topic' ][ 'BimSnippet' ][ 'Reference' ] = $_POST[ 'bim_snippet_reference' ];
+				$jsonIssue[ 'markup' ][ 'Topic' ][ 'BimSnippet' ][ 'ReferenceSchema' ] = $_POST[ 'bim_snippet_reference_schema' ];
+				$jsonIssue[ 'markup' ][ 'Topic' ][ 'BimSnippet' ][ '@atributes' ] = Array( 'SnippetType' => $_POST[ 'bim_snippet_type' ], 'isExternal' => ( isset( $_POST[ 'bim_snippet_isexternal' ] ) && $_POST[ 'bim_snippet_isexternal' ] == 'true' ) ? true : false );
+				$jsonIssue[ 'markup' ][ 'Topic' ][ 'DocumentReference' ] = Array();
+				if( is_array( $_POST[ 'referenced_document' ] ) ) {
+					foreach( $_POST[ 'referenced_document' ] as $key => $referencedDocument ) {
+						if( $referencedDocument != '' ) {
+							$jsonIssue[ 'markup' ][ 'Topic' ][ 'DocumentReference' ][] = Array(
+									'ReferencedDocument' => $referencedDocument,
+									'Description' => isset( $_POST[ 'document_reference_description' ][$key] ) ? $_POST[ 'document_reference_description' ][$key] : '',
+									'@attributes' => Array(
+											'isExternal' => ( isset( $_POST[ 'document_reference_isexternal' ][$key] ) && $_POST[ 'document_reference_isexternal' ][$key] == 'true' ) ? true : false,
+											'Guid' => isset( $_POST[ 'document_reference_guid' ][$key] ) ? $_POST[ 'document_reference_guid' ][$key] : ''
+									)
+							);
+						}
+					}
+				}
+				$jsonIssue[ 'markup' ][ 'Topic' ][ 'RelatedTopics' ] = Array();
+				if( is_array( $_POST[ 'related_topic' ] ) ) {
+					foreach( $_POST[ 'related_topic' ] as $key => $relatedTopic ) {
+						if( $relatedTopic != '' ) {
+							$jsonIssue[ 'markup' ][ 'Topic' ][ 'RelatedTopics' ][] = Array(
+									'@attributes' => Array(
+											'Guid' => $relatedTopic,
+									)
+							);
+						}
+					}
+				}
+				
+				$uploadInfo = wp_upload_dir();
+				$attachments = Array();
+				
+				if( is_array( $_POST[ 'viewpoint' ] ) ) {
+					foreach( $_POST[ 'viewpoint' ] as $key => $viewpoint ) {
+						if( $viewpoint != '' ) {
+							$snapshot = '';
+							if( isset( $_FILES[ 'snapshot' ] ) && is_array( $_FILES[ 'snapshot' ][ 'tmp_name' ] ) && isset( $_FILES[ 'snapshot' ][ 'tmp_name' ][$key] ) && $_FILES[ 'snapshot' ][ 'tmp_name' ][$key] != '' ) {
+								if( !isset( $_FILES[ 'snapshot' ][ 'error' ][$key] ) || $_FILES[ 'snapshot' ][ 'error' ][$key] == 0 ) {
+									$index = 1;
+									$basename = substr( $_FILES[ 'snapshot' ][ 'name' ][$key], 0, strrpos( $_FILES[ 'snapshot' ][ 'name' ][$key], '.' ) );
+									$extension = substr( $_FILES[ 'snapshot' ][ 'name' ][$key], strrpos( $_FILES[ 'snapshot' ][ 'name' ][$key], '.' ) + 1 );
+									$filename = $_FILES[ 'snapshot' ][ 'name' ][$key];
+									// Find the first available filename
+									while ( file_exists( $uploadInfo[ 'path' ] . '/' . $filename ) ) {
+										$index ++;
+										$filename = $basename . '-' . $index . '.' . $extension;
+									}
+									if( move_uploaded_file( $_FILES[ 'snapshot' ][ 'tmp_name' ][$key], $uploadInfo[ 'path' ] . '/' . $filename ) !== false ) {
+										// Add the snapshot as an attachment to the project
+										$wpFiletype = wp_check_filetype( basename( $filename ), null );
+										$attachment = Array(
+												'guid' => $uploadInfo[ 'url' ] . '/' . basename( $filename ),
+												'post_mime_type' => $wpFiletype[ 'type' ],
+												'post_title' => preg_replace('/\.[^.]+$/', '', basename( $filename ) ),
+												'post_content' => '',
+												'post_status' => 'inherit'
+										);
+										$attachId = wp_insert_attachment( $attachment, $uploadInfo[ 'path' ] . '/' . $filename );
+										// you must first include the image.php file
+										// for the function wp_generate_attachment_metadata() to work
+										require_once( ABSPATH . 'wp-admin/includes/image.php' );
+										$attachData = wp_generate_attachment_metadata( $attachId, $uploadInfo[ 'path' ] . '/' . $filename );
+										wp_update_attachment_metadata( $attachId, $attachData );
+										$attachments[] = $attachId;
+										$snapshot = wp_get_attachment_url( $attachId );
+									}
+								}
+							}
+							
+							$viewpointObject = Array(
+									'Viewpoint' => $viewpoint,
+									'Snapshot' => $snapshot,
+									'Comments' => Array(),
+									'@attributes' => Array(
+											'Guid' => isset( $_POST[ 'viewpoint_guid' ][$key] ) ? $_POST[ 'viewpoint_guid' ][$key] : ''
+									)
+							);
+							if( is_array( $_POST[ 'viewpoint_comment' ] ) && is_array( $_POST[ 'viewpoint_comment' ][$key] ) ) {
+								foreach( $_POST[ 'viewpoint_comment' ][$key] as $viewpointComment ) {
+									if( $viewpointComment != '' ) {
+										$viewpointObject[ 'Comments' ][] = $viewpointComment;
+									}
+								}
+							} 
+							$jsonIssue[ 'markup' ][ 'Viewpoints' ][] = $viewpointObject;
+						}
+					}
+				}
+				
+				if( is_array( $_POST[ 'component_orginatingsystem' ] ) ) {
+					foreach( $_POST[ 'component_orginatingsystem' ] as $key => $componentOrginatingSystem ) {
+						if( $componentOrginatingSystem != '' ) {
+							$jsonIssue[ 'visualizationinfo' ][ 'Components' ][] = Array(
+									'OriginatingSystem' => $componentOrginatingSystem,
+									'AuthoringToolId' => isset( $_POST[ 'component_authoring_tool_id' ][$key] ) ? $_POST[ 'component_authoring_tool_id' ][$key] : '',
+									'@attributes' => Array(
+											'IfcGuid' => isset( $_POST[ 'component_ifcguid' ][$key] )? $_POST[ 'component_ifcguid' ][$key] : '',
+											'Selected' => ( isset( $_POST[ 'component_selected' ][$key] ) && $_POST[ 'component_selected' ][$key] == 'true' ) ? true : false,
+											'Visible' => ( isset( $_POST[ 'component_visible' ][$key] ) && $_POST[ 'component_visible' ][$key] == 'true' ) ? true : false,
+											'Color' => isset( $_POST[ 'component_colour' ][$key] ) ? $_POST[ 'component_colour' ][$key] : ''
+									)
+							);
+						}
+					}
+				}
+				
+				if( is_array( $_POST[ 'view_to_world_scale' ] ) ) {
+					foreach( $_POST[ 'view_to_world_scale' ] as $key => $viewToWorldScale ) {
+						if( $viewToWorldScale != '' ) {
+							$jsonIssue[ 'visualizationinfo' ][ 'OrthogonalCamera' ][] = Array(
+									'CameraViewPoint' => Array( 
+											'X' => isset( $_POST[ 'camera_viewpoint_x' ][$key] ) ? $_POST[ 'camera_viewpoint_x' ][$key] : '',
+											'Y' => isset( $_POST[ 'camera_viewpoint_y' ][$key] ) ? $_POST[ 'camera_viewpoint_y' ][$key] : '',
+											'Z' => isset( $_POST[ 'camera_viewpoint_z' ][$key] ) ? $_POST[ 'camera_viewpoint_z' ][$key] : '',
+									),
+									'CameraDirection' => Array( 
+											'X' => isset( $_POST[ 'camera_direction_x' ][$key] ) ? $_POST[ 'camera_direction_x' ][$key] : '',
+											'Y' => isset( $_POST[ 'camera_direction_y' ][$key] ) ? $_POST[ 'camera_direction_y' ][$key] : '',
+											'Z' => isset( $_POST[ 'camera_direction_z' ][$key] ) ? $_POST[ 'camera_direction_z' ][$key] : '',
+									),
+									'CameraUpVector' => Array( 
+											'X' => isset( $_POST[ 'camera_vector_up_x' ][$key] ) ? $_POST[ 'camera_vector_up_x' ][$key] : '',
+											'Y' => isset( $_POST[ 'camera_vector_up_y' ][$key] ) ? $_POST[ 'camera_vector_up_y' ][$key] : '',
+											'Z' => isset( $_POST[ 'camera_vector_up_z' ][$key] ) ? $_POST[ 'camera_vector_up_z' ][$key] : '',
+									),
+									'ViewToWorldScale' => $viewToWorldScale
+							);
+						}
+					}
+				}
+				if( is_array( $_POST[ 'field_of_view' ] ) ) {
+					foreach( $_POST[ 'field_of_view' ] as $key => $fieldOfView ) {
+						if( $fieldOfView != '' ) {
+							$jsonIssue[ 'visualizationinfo' ][ 'PerspectiveCamera' ][] = Array(
+									'CameraViewPoint' => Array(
+											'X' => isset( $_POST[ 'perspective_camera_viewpoint_x' ][$key] ) ? $_POST[ 'perspective_camera_viewpoint_x' ][$key] : '',
+											'Y' => isset( $_POST[ 'perspective_camera_viewpoint_y' ][$key] ) ? $_POST[ 'perspective_camera_viewpoint_y' ][$key] : '',
+											'Z' => isset( $_POST[ 'perspective_camera_viewpoint_z' ][$key] ) ? $_POST[ 'perspective_camera_viewpoint_z' ][$key] : '',
+									),
+									'CameraDirection' => Array(
+											'X' => isset( $_POST[ 'perspective_camera_direction_x' ][$key] ) ? $_POST[ 'perspective_camera_direction_x' ][$key] : '',
+											'Y' => isset( $_POST[ 'perspective_camera_direction_y' ][$key] ) ? $_POST[ 'perspective_camera_direction_y' ][$key] : '',
+											'Z' => isset( $_POST[ 'perspective_camera_direction_z' ][$key] ) ? $_POST[ 'perspective_camera_direction_z' ][$key] : '',
+									),
+									'CameraUpVector' => Array(
+											'X' => isset( $_POST[ 'perspective_camera_vector_up_x' ][$key] ) ? $_POST[ 'perspective_camera_vector_up_x' ][$key] : '',
+											'Y' => isset( $_POST[ 'perspective_camera_vector_up_y' ][$key] ) ? $_POST[ 'perspective_camera_vector_up_y' ][$key] : '',
+											'Z' => isset( $_POST[ 'perspective_camera_vector_up_z' ][$key] ) ? $_POST[ 'perspective_camera_vector_up_z' ][$key] : '',
+									),
+									'FieldOfView' => $fieldOfView
+							);
+						}
+					}
+				}
+				if( is_array( $_POST[ 'line_start_x' ] ) ) {
+					foreach( $_POST[ 'line_start_x' ] as $key => $lineStartX ) {
+						if( $lineStartX != '' ) {
+							$jsonIssue[ 'visualizationinfo' ][ 'Lines' ][] = Array(
+									'StartPoint' => Array(
+											'X' => $lineStartX,
+											'Y' => isset( $_POST[ 'line_start_y' ][$key] ) ? $_POST[ 'line_start_y' ][$key] : '',
+											'Z' => isset( $_POST[ 'line_start_z' ][$key] ) ? $_POST[ 'line_start_z' ][$key] : '',
+									),
+									'EndPoint' => Array(
+											'X' => isset( $_POST[ 'line_end_x' ][$key] ) ? $_POST[ 'line_end_x' ][$key] : '',
+											'Y' => isset( $_POST[ 'line_end_y' ][$key] ) ? $_POST[ 'line_end_y' ][$key] : '',
+											'Z' => isset( $_POST[ 'line_end_z' ][$key] ) ? $_POST[ 'line_end_z' ][$key] : '',
+									)
+							);
+						}
+					}
+				}
+				if( is_array( $_POST[ 'clipping_plane_location_x' ] ) ) {
+					foreach( $_POST[ 'clipping_plane_location_x' ] as $key => $clippingPlaneLocationX ) {
+						if( $clippingPlaneLocationX != '' ) {
+							$jsonIssue[ 'visualizationinfo' ][ 'ClippingPlanes' ][] = Array(
+									'Location' => Array(
+											'X' => $clippingPlaneLocationX,
+											'Y' => isset( $_POST[ 'clipping_plane_location_y' ][$key] ) ? $_POST[ 'clipping_plane_location_y' ][$key] : '',
+											'Z' => isset( $_POST[ 'clipping_plane_location_z' ][$key] ) ? $_POST[ 'clipping_plane_location_z' ][$key] : '',
+									),
+									'Direction' => Array(
+											'X' => isset( $_POST[ 'clipping_plane_direction_x' ][$key] ) ? $_POST[ 'clipping_plane_direction_x' ][$key] : '',
+											'Y' => isset( $_POST[ 'clipping_plane_direction_y' ][$key] ) ? $_POST[ 'clipping_plane_direction_y' ][$key] : '',
+											'Z' => isset( $_POST[ 'clipping_plane_direction_z' ][$key] ) ? $_POST[ 'clipping_plane_direction_z' ][$key] : '',
+									)
+							);
+						}
+					}
+				}
+				if( is_array( $_POST[ 'bitmap' ] ) ) {
+					foreach( $_POST[ 'bitmap' ] as $key => $bitstamp ) {
+						if( $bitstamp != '' ) {
+							$jsonIssue[ 'visualizationinfo' ][ 'Bitmap' ][] = Array(
+									'Bitmap' => $bitmap,
+									'Reference' => isset( $_POST[ 'reference' ][$key] ) ? $_POST[ 'reference' ][$key] : '',
+									'Location' => Array(
+											'X' => isset( $_POST[ 'bitmap_location_x' ][$key] ) ? $_POST[ 'bitmap_location_x' ][$key] : '',
+											'Y' => isset( $_POST[ 'bitmap_location_y' ][$key] ) ? $_POST[ 'bitmap_location_y' ][$key] : '',
+											'Z' => isset( $_POST[ 'bitmap_location_z' ][$key] ) ? $_POST[ 'bitmap_location_z' ][$key] : '',
+									),
+									'Normal' => Array(
+											'X' => isset( $_POST[ 'bitmap_normal_x' ][$key] ) ? $_POST[ 'bitmap_normal_x' ][$key] : '',
+											'Y' => isset( $_POST[ 'bitmap_normal_y' ][$key] ) ? $_POST[ 'bitmap_normal_y' ][$key] : '',
+											'Z' => isset( $_POST[ 'bitmap_normal_z' ][$key] ) ? $_POST[ 'bitmap_normal_z' ][$key] : '',
+									),
+									'Up' => Array(
+											'X' => isset( $_POST[ 'bitmap_up_x' ][$key] ) ? $_POST[ 'bitmap_up_x' ][$key] : '',
+											'Y' => isset( $_POST[ 'bitmap_up_y' ][$key] ) ? $_POST[ 'bitmap_up_y' ][$key] : '',
+											'Z' => isset( $_POST[ 'bitmap_up_z' ][$key] ) ? $_POST[ 'bitmap_up_z' ][$key] : '',
+									),
+									'Height' => isset( $_POST[ 'height' ][$key] ) ? $_POST[ 'height' ][$key] : '',
+							);
+						}
+					}
+				}
+				$postId = BIMBCFManagement::addIssue( $jsonIssue );
+				if( $postId !== false ) {
+					// TODO: add images to this post and set first as featured
+					$first = true;
+					foreach( $attachments as $attachmentId ) {
+						$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->posts}
+							SET post_parent = %d
+							WHERE ID = %d", $postId, $attachmentId ) );
+						if( $first ) {
+							set_post_thumbnail( $postId, $attachmentId );
+							$first = false;
+						}
+					}
 ?>
-			<form method="post" action="" id="add-issue-form">
+					<h3><?php _e( 'Issue added', 'bim-bcf-management' ); ?></h3>
+					<a href="<?php print( get_bloginfo( 'wpurl' ) . $options[ 'issue_details_uri' ] . '?id=' . $postId );  ?>"><?php _e( 'view issue', 'bim-bcf-management' ); ?></a><br />
+					<?php _e( 'or', 'bim-bcf-management' ); ?><br />
+					<a href="<?php the_permalink(); ?>"><?php _e( 'add new issue', 'bim-bcf-management' ); ?></a><br />
+<?php
+					return '';
+				} else {
+					// TODO: issue could not be imported tell the user!
+				}
+			}
+?>
+			<form method="post" action="" id="add-issue-form" enctype="multipart/form-data">
 				<h3><?php _e( 'Markup', 'bim-bcf-management' ); ?></h3>
 				<h4><?php _e( 'Header', 'bim-bcf-management' ); ?></h4>
 				<h5><?php _e( 'File', 'bim-bcf-management' ); ?></h5>
@@ -715,14 +1073,14 @@ class BIMBCFManagement {
 					</select><br />
 					<label for="topic-guid"><?php _e( 'Guid', 'bim-bcf-management' ); ?></label>
 					<input type="text" id="topic-guid" name="topic_guid" /><br />
-					<label for="topic-creation-date"><?php _e( 'Creation date', 'bim-bcf-management' ); ?></label>
+					<!-- label for="topic-creation-date"><?php _e( 'Creation date', 'bim-bcf-management' ); ?></label>
 					<input type="date" id="topic-creation-date" name="topic_creation_date" /><br />
 					<label for="topic-creation-time"><?php _e( 'Creation time', 'bim-bcf-management' ); ?></label>
 					<input type="time" id="topic-creation-time" name="topic_creation_time" /><br />
 					<label for="topic-modified-date"><?php _e( 'Creation date', 'bim-bcf-management' ); ?></label>
 					<input type="date" id="topic-modified-date" name="topic_modified_date" /><br />
 					<label for="topic-modified-time"><?php _e( 'Modified time', 'bim-bcf-management' ); ?></label>
-					<input type="time" id="topic-modified-time" name="topic_modified_time" /><br />
+					<input type="time" id="topic-modified-time" name="topic_modified_time" /><br /-->
 					<label for="assigned-to"><?php _e( 'Assigned to', 'bim-bcf-management' ); ?></label>
 					<select id="assigned-to" name="assigned_to">
 <?php 	
@@ -802,27 +1160,57 @@ class BIMBCFManagement {
 				</div>
 				<a href="#" class="more-items" id="more-component"><?php _e( 'Add component', 'bim-bcf-management' ); ?></a><br />
 				<h4><?php _e( 'Orthogonal Camera', 'bim-bcf-management' ); ?></h4>
-				<label for="view-to-world-scale"><?php _e( 'View to world scale', 'bim-bcf-management' ); ?></label>
-				<input type="text" id="view-to-world-scale" name="view_to_world_scale" /><br />
 				<div class="camera-direction sub-element">
+					<h5><?php _e( 'Camera View Point', 'bim-bcf-management' ); ?></h5>
+					<label for="camera-viewpoint-x-0"><?php _e( 'X', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="camera-viewpoint-x-0" name="camera_viewpoint_x[]" /><br />
+					<label for="camera-viewpoint-y-0"><?php _e( 'Y', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="camera-viewpoint-y-0" name="camera_viewpoint_y[]" /><br />
+					<label for="camera-viewpoint-z-0"><?php _e( 'Z', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="camera-viewpoint-z-0" name="camera_viewpoint_z[]" /><br />
+					<h5><?php _e( 'Camera Direction', 'bim-bcf-management' ); ?></h5>
 					<label for="camera-direction-x-0"><?php _e( 'X', 'bim-bcf-management' ); ?></label>
 					<input type="text" id="camera-direction-x-0" name="camera_direction_x[]" /><br />
 					<label for="camera-direction-y-0"><?php _e( 'Y', 'bim-bcf-management' ); ?></label>
 					<input type="text" id="camera-direction-y-0" name="camera_direction_y[]" /><br />
 					<label for="camera-direction-z-0"><?php _e( 'Z', 'bim-bcf-management' ); ?></label>
 					<input type="text" id="camera-direction-z-0" name="camera_direction_z[]" /><br />
+					<h5><?php _e( 'Camera Up Vector', 'bim-bcf-management' ); ?></h5>
+					<label for="camera-up-vector-x-0"><?php _e( 'X', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="camera-up-vector-x-0" name="camera_up_vector_x[]" /><br />
+					<label for="camera-up-vector-y-0"><?php _e( 'Y', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="camera-up-vector-y-0" name="camera_up_vector_y[]" /><br />
+					<label for="camera-up-vector-z-0"><?php _e( 'Z', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="camera-up-vector-z-0" name="camera_up_vector_z[]" /><br />
+					<label for="view-to-world-scale-0"><?php _e( 'View to world scale', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="view-to-world-scale-0" name="view_to_world_scale[]" /><br />					
 				</div>
 				<a href="#" class="more-items" id="more-camera-direction"><?php _e( 'Add camera direction', 'bim-bcf-management' ); ?></a><br />
 				<h4><?php _e( 'Perspective Camera', 'bim-bcf-management' ); ?></h4>
-				<label for="field-of-view"><?php _e( 'Field of view', 'bim-bcf-management' ); ?></label>
-				<input type="text" id="field-of-view" name="field_of_view" /><br />
 				<div class="camera-perspective sub-element">
-					<label for="camera-perspective-x-0"><?php _e( 'X', 'bim-bcf-management' ); ?></label>
-					<input type="text" id="camera-perspective-x-0" name="camera_perspective_x[]" /><br />
-					<label for="camera-perspective-y-0"><?php _e( 'Y', 'bim-bcf-management' ); ?></label>
-					<input type="text" id="camera-perspective-y-0" name="camera_perspective_y[]" /><br />
-					<label for="camera-perspective-z-0"><?php _e( 'Z', 'bim-bcf-management' ); ?></label>
-					<input type="text" id="camera-perspective-z-0" name="camera_perspective_z[]" /><br />
+					<h5><?php _e( 'Camera View Point', 'bim-bcf-management' ); ?></h5>
+					<label for="perspective-camera-viewpoint-x-0"><?php _e( 'X', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="perspective-camera-viewpoint-x-0" name="perspective_camera_viewpoint_x[]" /><br />
+					<label for="perspective-camera-viewpoint-y-0"><?php _e( 'Y', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="perspective-camera-viewpoint-y-0" name="perspective_camera_viewpoint_y[]" /><br />
+					<label for="perspective-camera-viewpoint-z-0"><?php _e( 'Z', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="perspective-camera-viewpoint-z-0" name="perspective_camera_viewpoint_z[]" /><br />
+					<h5><?php _e( 'Camera Direction', 'bim-bcf-management' ); ?></h5>
+					<label for="perspective-camera-direction-x-0"><?php _e( 'X', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="perspective-camera-direction-x-0" name="perspective_camera_direction_x[]" /><br />
+					<label for="perspective-camera-direction-y-0"><?php _e( 'Y', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="perspective-camera-direction-y-0" name="perspective_camera_direction_y[]" /><br />
+					<label for="perspective-camera-direction-z-0"><?php _e( 'Z', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="perspective-camera-direction-z-0" name="perspective_camera_direction_z[]" /><br />
+					<h5><?php _e( 'Camera Up Vector', 'bim-bcf-management' ); ?></h5>
+					<label for="perspective-camera-up-vector-x-0"><?php _e( 'X', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="perspective-camera-up-vector-x-0" name="perspective_camera_up_vector_x[]" /><br />
+					<label for="perspective-camera-up-vector-y-0"><?php _e( 'Y', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="perspective-camera-up-vector-y-0" name="perspective_camera_up_vector_y[]" /><br />
+					<label for="perspective-camera-up-vector-z-0"><?php _e( 'Z', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="perspective-camera-up-vector-z-0" name="perspective_camera_up_vector_z[]" /><br />
+					<label for="field-of-view-0"><?php _e( 'Field of view', 'bim-bcf-management' ); ?></label>
+					<input type="text" id="field-of-view-0" name="field_of_view[]" /><br />
 				</div>
 				<a href="#" class="more-items" id="more-camera-perspective"><?php _e( 'Add camera perspective', 'bim-bcf-management' ); ?></a><br />
 				<h4><?php _e( 'Lines', 'bim-bcf-management' ); ?></h4>
@@ -1092,6 +1480,48 @@ class BIMBCFManagement {
 		$jsonIssue[ 'visualizationinfo' ] = get_post_meta( $issue->ID, 'visualizationinfo' );
 		$jsonIssue[ 'projectextension' ] = get_post_meta( $issue->ID, 'projectextension', true );
 		return $jsonIssue;
+	}
+	
+	public static function getRandomGuid() {
+		$guid = uniqid() . uniqid() . uniqid();
+		return substr( $guid, 0, 8 ) . '-' . substr( $guid, 8, 4 ) . '-' . substr( $guid, 12, 4 ) . '-' . substr( $guid, 16, 4 )  . '-' . substr( $guid, 20, 12 );
+	}
+	
+	public static function preprocessCommentHandler( $commentData ) {
+		$options = BIMBCFManagement::getOptions();
+		$post = get_post( $commentData[ 'comment_post_ID' ] );
+		if( $post->post_type == $options[ 'bcf_issue_post_type' ] ) {
+			$user = wp_get_current_user();
+			$topicStatuses = explode( ',', $options[ 'topic_statuses' ] );
+			$priorities = explode( ',', $options[ 'priorities' ] );
+			$verbalStatus = isset( $_POST[ 'VerbalStatus' ] ) ? $_POST[ 'VerbalStatus' ] : '';
+			$status = isset( $_POST[ 'Status' ] ) ? $_POST[ 'Status' ] : 'Unknown';
+			$priority = isset( $_POST[ 'Priority' ] ) ? $_POST[ 'Priority' ] : '';
+			if( !in_array( $verbalStatus, $topicStatuses ) ) {
+				$verbalStatus = isset( $topicStatuses[0] ) ? $topicStatuses[0] : '';
+			}
+			if( !in_array( $priority, $priorities ) ) {
+				$priority = isset( $priorities[0] ) ? $priorities[0] : '';
+			}
+			$comment = Array(
+				'VerbalStatus' => trim( $verbalStatus ),
+				'Status' => $status,
+				'Date' => date( 'Y-m-d\TH:i:sP' ),
+				'Author' => $user->user_email,
+				'Comment' => $commentData[ 'comment_content' ],
+				'Topic' => Array(),
+				'ModifiedDate' => date( 'Y-m-d\TH:i:sP' ),
+				'Priority' => trim( $priority ),
+				'@attributes' => Array( 'guid' => BIMBCFManagement::getRandomGuid() )
+			);
+			$markup = get_post_meta( $post->ID, 'markup', true );
+			$markup[ 'Comment' ][] = $comment;
+			update_post_meta( $post->ID, 'markup', $markup );
+			$commentData[ 'comment_content' ] = $commentData[ 'comment_content' ] . "\n" . __( 'Status', 'bim-bcf-management' ) . ': ' . $status;
+			$commentData[ 'comment_content' ] = $commentData[ 'comment_content' ] . "\n" . __( 'VerbalStatus', 'bim-bcf-management' ) . ': ' . $verbalStatus;
+			$commentData[ 'comment_content' ] = $commentData[ 'comment_content' ] . "\n" . __( 'Priority', 'bim-bcf-management' ) . ': ' . $priority;
+		}
+		return $commentData;
 	}
 }
 

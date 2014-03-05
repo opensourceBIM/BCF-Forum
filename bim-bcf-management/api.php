@@ -1,5 +1,8 @@
 <?php
 include( '../../../wp-config.php' );
+header( 'Access-Control-Allow-Origin: *' );
+header( 'Access-Control-Allow-Methods: GET, POST' );
+header( 'Access-Control-Allow-Headers: X-Requested-With, Content-Type' );
 
 // TODO: add functions and implement functions
 $supportedCalls = Array(
@@ -25,11 +28,11 @@ if( isset( $request ) ) {
 	$invalid = false;
 	$errorMessage = '';
 	$errorType = '';
-	if( isset( $request[ 'request' ] ) 
-			&& isset( $request[ 'request' ][ 'interface' ] ) 
-			&& isset( $request[ 'request' ][ 'method' ] ) 
+	if( isset( $request[ 'request' ] )
+			&& isset( $request[ 'request' ][ 'interface' ] )
+			&& isset( $request[ 'request' ][ 'method' ] )
 			&& isset( $request[ 'request' ][ 'parameters' ] ) ) {
-		if( isset( $supportedCalls[$request[ 'request' ][ 'interface' ]] ) 
+		if( isset( $supportedCalls[$request[ 'request' ][ 'interface' ]] )
 				&& isset( $supportedCalls[$request[ 'request' ][ 'interface' ]][$request[ 'request' ][ 'method' ]] ) ) {
 			if( $request[ 'request' ][ 'interface' ] == 'Bimsie1AuthInterface' ) {
 				if( $request[ 'request' ][ 'method' ] == 'getAccessMethod' ) {
@@ -65,7 +68,7 @@ if( isset( $request ) ) {
 						$errorType = 'UserException';
 						$errorMessage = __( 'Invalid token', 'bim-bcf-management' );
 					}
-				} elseif( $request[ 'request' ][ 'method' ] == 'isLoggedIn' ) {	
+				} elseif( $request[ 'request' ][ 'method' ] == 'isLoggedIn' ) {
 					if( isset( $request[ 'token' ] ) && $request[ 'token' ] != '' ) {
 						$userId = BIMsie::getUserIdByToken( $request[ 'token' ] );
 						if( $userId !== false ) {
@@ -82,7 +85,7 @@ if( isset( $request ) ) {
 			} elseif( $request[ 'request' ][ 'interface' ] == 'Bimsie1BcfInterface' ) {
 				// TODO: BCF methods here
 				if( $request[ 'request' ][ 'method' ] == 'getIssuesByProjectRevision' ) {
-					if( isset( $request[ 'request' ][ 'parameters' ][ 'bimsieUrl' ] ) && $request[ 'request' ][ 'parameters' ][ 'bimsieUrl' ] != '' && 
+					if( isset( $request[ 'request' ][ 'parameters' ][ 'bimsieUrl' ] ) && $request[ 'request' ][ 'parameters' ][ 'bimsieUrl' ] != '' &&
 							isset( $request[ 'request' ][ 'parameters' ][ 'poid' ] ) && is_numeric( $request[ 'request' ][ 'parameters' ][ 'poid' ] ) &&
 							isset( $request[ 'request' ][ 'parameters' ][ 'roid' ] ) && is_numeric( $request[ 'request' ][ 'parameters' ][ 'roid' ] ) ) {
 						$userId = BIMsie::getUserIdByToken( $request[ 'token' ] );
@@ -98,7 +101,7 @@ if( isset( $request ) ) {
 							$errorType = 'UserException';
 							$errorMessage = __( 'Invalid token', 'bim-bcf-management' );
 						}
-					} else { 
+					} else {
 						$invalid = true;
 						$errorType = 'InvalidRequest';
 						$errorMessage  = __( 'Unsupported interface or method, check supported methods by browsing to: ', 'bim-bcf-management' ) . plugins_url( 'api.php', __FILE__ );
@@ -154,12 +157,12 @@ if( isset( $request ) ) {
 ?>
 					<li><?php print( $method . '(' . implode( ', ', $parameters ) . ')' ); ?></li>
 <?php
-		} 
-?>					
+		}
+?>
 				</ul>
 			</li>
 <?php
-	} 
+	}
 ?>
 		</ul>
 		<h2>How to use</h2>

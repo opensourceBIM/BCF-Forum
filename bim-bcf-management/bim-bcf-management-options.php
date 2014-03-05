@@ -77,11 +77,11 @@ if( isset( $_POST['action'] ) ) {
 			fwrite( $file, '		</xs:simpleType>' . "\n" );
 			$redefines .= '	<xs:element name="ExtendedPriority" type="Priority" />' . "\n";
 		}
-		if( isset( $options[ 'user_id_types' ] ) && $options[ 'user_id_types' ] != '' ) {
-			$userIdTypes = explode( ',', $options[ 'user_id_types' ] );
+		$emails = BIMBCFManagement::getUserIdTypes();
+		if( count( $emails ) > 0 ) {
 			fwrite( $file, '		<xs:simpleType name="UserIdType">' . "\n" );
 			fwrite( $file, '			<xs:restriction base="UserIdType">' . "\n" );
-			foreach( $userIdTypes as $userIdType ) {
+			foreach( $emails as $userIdType ) {
 				fwrite( $file, '				<xs:enumeration value="' . htmlentities( trim( stripslashes( $userIdType ) ), defined( 'ENT_XML1' ) ? ENT_XML1 : ENT_QUOTES, 'UTF-8' ) . '" />' . "\n" );
 			}
 			fwrite( $file, '			</xs:restriction>' . "\n" );
@@ -225,13 +225,13 @@ $pages = get_posts( Array(
 					<p class="description"><?php _e( 'Comma seperated list of priorities, used in the site and to generate extensions.xsd', 'bim-bcf-management' ); ?></p>
 				</td>
 			</tr>
-			<tr valign="top">
+			<!--tr valign="top">
 				<td><label for="user-id-types">User ID types</label></td>
 				<td>
 					<input type="text" id="user-id-types" name="bim_bcf_management_options[user_id_types]" value="<?php print( isset( $bimBCFManagementOptions[ 'user_id_types' ] ) ? stripslashes( $bimBCFManagementOptions[ 'user_id_types' ] ) : '' ); ?>" />
 					<p class="description"><?php _e( 'Comma seperated list of user id types, used in the site and to generate extensions.xsd', 'bim-bcf-management' ); ?></p>
 				</td>
-			</tr>
+			</tr-->
 			<tr>
 				<td colspan="2">
 					<p class="submit">
