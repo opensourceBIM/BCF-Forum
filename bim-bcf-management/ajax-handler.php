@@ -86,7 +86,7 @@ if( isset( $_POST[ 'method' ] ) ) {
 			// TODO: maybe only retrieve active/top level projects?
 			$projects = BIMsie::request( $uri, $token, 'Bimsie1ServiceInterface', 'getAllProjects', Array( 'onlyTopLevel' => 'false', 'onlyActive' => 'false' ) );
 			$error = BIMsie::getErrorMessage( $projects );
-			if( isset( $projects ) && isset( $projects->response ) && isset( $projects->response->result ) && $error === false ) {
+			if( $error === false && isset( $projects ) && isset( $projects->response ) && isset( $projects->response->result ) ) {
 			 	$projects = $projects->response->result;
 			} else {
 				$projects = null;
@@ -96,7 +96,9 @@ if( isset( $_POST[ 'method' ] ) ) {
 				$projects = ( Array ) $projects;
 				$response[ 'projects' ] = $projects;
 				// at this point we set the  bimsie server per pending issue
-				BIMBCFManagement::setBimsieUriForPendingIssues( $uri );
+				if( !isset( $_POST[ 'type' ] ) || $_POST[ 'type' ] == 'pending' ) {
+					BIMBCFManagement::setBimsieUriForPendingIssues( $uri );
+				}
 			}
 			if( isset( $error ) && $error !== false ) {
 				$response[ 'error' ] = $error;
@@ -134,6 +136,23 @@ if( isset( $_POST[ 'method' ] ) ) {
 				}
 			}
 			$response[ 'projects' ] = $projectsLackingRevision;
+		} elseif( $_POST[ 'method' ] == 'getRevisions' ) {
+			// set this project for this issue and retrieve a list of revisions for this project from the BIMSie server
+			$poid = isset( $_POST[ 'poid' ] ) ? intval( $_POST[ 'poid' ] ) : -1;
+			$bimsieResponse = BIMsie::request( $uri, $token, 'Bimsie1ServiceInterface', 'getAllRevisionsOfProject', Array( 'poid' => $poid ) );
+			$error = BIMsie::getErrorMessage( $bimsieResponse );
+			if( $error === false && isset( $bimsieResponse->response ) && isset( $bimsieResponse->response->result ) ) {
+				$response[ 'revisions' ] = $bimsieResponse->response->result;
+				foreach( $response[ 'revisions' ] as $key => $revision ) {
+					if( isset( $revision->date ) && is_numeric( $revision->date ) ) {
+						$response[ 'revisions' ][$key]->dateString = date( 'd-m-Y H:i', $revision->date * 0.001 );
+					} else {
+						$response[ 'revisions' ][$key]->dateString = __( 'unknown', 'bim-bcf-management' );
+					}
+				}
+			} else {
+				$response[ 'error' ] = $error;
+			}
 		}
 	} else {
 		// We have no BIMsie server information so cannot perform request

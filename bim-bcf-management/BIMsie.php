@@ -72,6 +72,11 @@ class BIMsie {
 				&& isset( $bimsieResponse[ 'response' ][ 'exception' ] ) && is_array( $bimsieResponse[ 'response' ][ 'exception' ] ) 
 				&& isset( $bimsieResponse[ 'response' ][ 'exception' ][ 'message' ] ) && $bimsieResponse[ 'response' ][ 'exception' ][ 'message' ] != '' ) {
 			return $bimsieResponse[ 'response' ][ 'exception' ][ 'message' ];
+		} elseif( isset( $bimsieResponse ) && is_object( $bimsieResponse ) 
+				&& isset( $bimsieResponse->response ) && is_object( $bimsieResponse->response ) 
+				&& isset( $bimsieResponse->response->exception ) && is_object( $bimsieResponse->response->exception ) 
+				&& isset( $bimsieResponse->response->exception->message ) && $bimsieResponse->response->exception->message != '' ) {
+			return $bimsieResponse->response->exception->message;
 		} else {
 			return false;
 		}
@@ -132,7 +137,7 @@ class BIMsie {
 	
 	public static function getUserIdByToken( $token ) {
 		global $wpdb;
-		if( strlen( $token ) >= 32 ) {
+		if( isset( $token ) && strlen( $token ) >= 32 ) {
 			$userId = $wpdb->get_var( $wpdb->prepare( "SELECT user_id 
 					FROM {$wpdb->usermeta}
 					WHERE meta_key = 'bimsie_token' AND meta_value LIKE '%s'", '%' . $token . '%' ) );

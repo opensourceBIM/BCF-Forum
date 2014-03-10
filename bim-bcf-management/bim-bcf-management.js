@@ -18,6 +18,14 @@ jQuery( document ).ready( function() {
 			BIMBCFManagement.addFormItem( this.id.replace( "more-", "" ) );
 		} );
 	}
+	jQuery( "#bimsie-server-selection #new-bimsie-server" ).on( "keyup keypress blur click", function() {
+		// maybe add some validation for the URI
+		if( this.value.length > 4 ) {
+			jQuery( "#bimsie-server-selection .toggle-server-info" ).removeClass( "hidden" );
+		} else {
+			jQuery( "#bimsie-server-selection .toggle-server-info" ).addClass( "hidden" );
+		}
+	} );
 } );
 
 BIMBCFManagement.issueUpdate = function() {
@@ -110,7 +118,7 @@ BIMBCFManagement.showProjectList = function() {
 									// Set the revisions for this selected project
 									var options = "<option value=\"\"> - </option>";
 									for( var p = 0; p < response.projects[i].revisions.length; p ++ ) {
-										options += "<option value=\"" + response.projects[i].revisions[p].lastConcreteRevisionId + "\"" + ( response.projects[i].revisions.length == 1 ? " selected" : "" ) + ">" + response.projects[i].revisions[p].dateString + " - " + response.projects[i].revisions[p].comment + "</option>";
+										options += "<option value=\"" + response.projects[i].revisions[p].oid + "\"" + ( response.projects[i].revisions.length == 1 ? " selected" : "" ) + ">" + response.projects[i].revisions[p].dateString + " - " + response.projects[i].revisions[p].comment + "</option>";
 									}
 									jQuery( this ).parent().append( "<br class=\"revisions\" /><label class=\"revisions\" for=\"revisions-for-" + response.projects[i].oid + "\">" + bimBCFManagementSettings.text.revision + "</label><select class=\"revisions\" id=\"revisions-for-" + response.projects[i].oid + "\">" + options + "</select>" );
 									break;
@@ -283,6 +291,7 @@ BIMBCFManagement.addFormItem = function( name ) {
 	}
 	jQuery( html ).insertAfter( "." + name + ":last" );
 	jQuery( "." + name + ":last" ).find( ".sub-sub-element:not(:first)" ).remove();
+	jQuery( "." + name + ":last" ).find( ".select-revision" ).remove();
 	var subHtml = jQuery( "." + name + ":last" ).find( ".sub-sub-element" ).html();
 	if( subHtml ) {
 		subHtml = subHtml.replace( /\-.?-.?/g, "-" + number + "-0" );
@@ -303,4 +312,141 @@ BIMBCFManagement.overlayAutoHeight = function() {
 			"left": Math.abs( ( jQuery( window ).width() - jQuery( overlay ).outerWidth() ) * 0.5 ) + jQuery( window ).scrollLeft()
 		} );
 	}
+};
+
+BIMBCFManagement.frontEndServerSelected = function() {
+	if( jQuery( "#server-selection" ).val() != "" ) {
+		jQuery( "#bimsie-server-selection .new-server-container" ).addClass( "hidden" );
+		for( var i = 0; i < bimBCFManagementSettings.bimsieServers.length; i ++ ) {
+			if( jQuery( "#server-selection" ).val() == i ) {
+				if( bimBCFManagementSettings.bimsieServers[i].remember == 0 ) {
+					// We still need a username and or password
+					jQuery( "#bimsie-server-selection .toggle-server-info" ).removeClass( "hidden" );
+				} else {
+					jQuery( "#bimsie-server-selection .toggle-server-info" ).addClass( "hidden" );
+				}
+				break;
+			}
+		}
+	} else {
+		jQuery( "#bimsie-server-selection .new-server-container" ).removeClass( "hidden" );
+	}
+};
+
+BIMBCFManagement.frontEndSubmitServerSelection = function() {
+	var valid = false;
+	if( jQuery( "#new-bimsie-server" ).val() != "" && jQuery( "#bimsie-username" ).val() != "" && jQuery( "#bimsie-password" ).val() != "" ) {
+		valid = true;
+	}
+	if( jQuery( "#server-selection" ).length > 0 ) {
+		var serverId = jQuery( "#server-selection" ).val();
+		if( serverId != "" && bimBCFManagementSettings.bimsieServers[serverId] ) {
+			if( bimBCFManagementSettings.bimsieServers[serverId].remember ) {
+				valid = true;
+			} else if( jQuery( "#bimsie-username" ).val() != "" && jQuery( "#bimsie-password" ).val() != "" ) {
+				valid = true;
+			}
+		}
+	}
+	
+	if( valid ) {
+		// add selected server to data and if needed password and username
+		var data = "method=selectServer&type=new";
+		if( jQuery( "#server-selection" ).length > 0 && jQuery( "#server-selection" ).val() != "" ) {
+			data += "&serverId=" + jQuery( "#server-selection" ).val();
+			jQuery( "#bimsie-server-uri" ).val( jQuery( "#server-selection" ).val() );
+		} else {
+			BIMBCFManagement.bimsieServer = jQuery( "#new-bimsie-server" ).val();
+			data += "&serverURI=" + jQuery( "#new-bimsie-server" ).val();
+			jQuery( "#bimsie-server-uri" ).val( BIMBCFManagement.bimsieServer );
+		}
+		if( jQuery( "#bimsie-username" ).val() != "" && jQuery( "#bimsie-password" ).val() != "" ) {
+			BIMBCFManagement.username = jQuery( "#bimsie-username" ).val();
+			BIMBCFManagement.password = jQuery( "#bimsie-password" ).val();
+			data += "&username=" + jQuery( "#bimsie-username" ).val() + 
+				"&password=" + jQuery( "#bimsie-password" ).val();
+			if( jQuery( "#server-remember-user:checked" ).length == 1 ) {
+				data += "&remember=true";
+			}
+		}
+		jQuery.ajax( {
+			type: "POST", 
+			url: bimBCFManagementSettings.ajaxURI, 
+			data: data, 
+			success: BIMBCFManagement.frontEndSelectServer,
+			dataType: "json"
+		} );
+	} else {
+		jQuery( "#bimsie-server-selection .status" ).html( bimBCFManagementSettings.text.serverSubmitError );
+	}
+};
+
+BIMBCFManagement.frontEndSelectServer = function( response ) {
+	// ajax callback for server selection, gives us a list of projects
+	if( response.error ) {
+		jQuery( "#bimsie-server-selection .status" ).html( response.error );
+	}
+	if( response.projects ) {
+		jQuery( ".select-project" ).remove();
+		if( response.projects.length == 0 ) {
+			jQuery( "#bimsie-server-selection .status" ).html( bimBCFManagementSettings.text.noProjectsFoundMessage );
+			return false;
+		}  else {
+			var server;
+			if( jQuery( "#server-selection" ).val() == "" ) {
+				server = BIMBCFManagement.bimsieServer;
+			} else {
+				server = jQuery( "#server-selection option:selected" ).text();
+			}
+			jQuery( "#bimsie-server-selection" ).html( bimBCFManagementSettings.text.serverSelected + ": " + server );
+			
+			var count = 0;
+			var html = "";
+			for( var i = 0; i < response.projects.length; i ++ ) {
+				html += "<option value=\"" + response.projects[i].oid + "\">" + response.projects[i].name + "</option>";
+			}
+			html += "</select>";
+			jQuery( ".project-place-holder" ).each( function() {
+				jQuery( "<select id=\"file-project-" + count + "\" name=\"file_project[]\" class=\"select-project\"><option value=\"\"> - </option>" + html ).insertAfter( this );
+				count ++;
+			} );
+			
+			jQuery( ".select-project" ).change( function( event ) {
+				// check if we are submitting revisions or projects
+				var container = jQuery( event.target ).parent();
+				container.find( ".select-revision" ).remove();
+				
+				var poid = jQuery( this ).val();
+				if( poid != "" ) {
+					jQuery.ajax( {
+						type: "POST", 
+						url: bimBCFManagementSettings.ajaxURI, 
+						data: "method=getRevisions&poid=" + poid + "&serverId=" + BIMBCFManagement.serverId + "&username=" + BIMBCFManagement.username + "&password=" + BIMBCFManagement.password, 
+						success: function( response ) {
+							if( response.error ) {
+								jQuery( "#bimsie-server-selection .status" ).html( response.error );
+							}
+							if( response && response.revisions && response.revisions.length > 0 ) {
+								container.find( ".revisions" ).remove();
+								var id = container.find( ".select-project" ).attr( "id" ).replace( "file-project-", "" );
+								var html = "<select id=\"file-revision-" + id + "\" name=\"file_revision[]\" class=\"select-revision\">";
+								for( var i = 0; i < response.revisions.length; i ++ ) {
+									html += "<option value=\"" + response.revisions[i].oid + "\">" + response.revisions[i].dateString + " - " + response.revisions[i].comment + "</option>";
+								}
+								html += "</select>";
+								jQuery( html ).insertAfter( container.find( ".revision-place-holder" ) );
+							} else {
+								jQuery( "<span class=\"select-revision\">" + bimBCFManagementSettings.text.noKnownRevisions + "</span>" ).insertAfter( jQuery( this ).parent().find( ".revision-place-holder" ) );
+							}
+						},
+						dataType: "json"
+					} );
+				}
+			} );			
+		}
+	}
+	if( null != response.serverId ) {
+		BIMBCFManagement.serverId = response.serverId;
+	}
+	
 };

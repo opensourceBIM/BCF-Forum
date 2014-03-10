@@ -15,6 +15,7 @@ $supportedCalls = Array(
 	'Bimsie1BcfInterface' => Array(
 		'getIssuesByProjectRevision' => Array( 'bimsieUrl', 'poid', 'roid' ),
 		'addIssue' => Array( 'issue' ),
+		'getExtensions' => Array()
 	)
 );
 
@@ -117,6 +118,57 @@ if( isset( $request ) ) {
 							$errorType = 'InvalidRequest';
 							$errorMessage  = __( 'Unsupported interface or method, check supported methods by browsing to: ', 'bim-bcf-management' ) . plugins_url( 'api.php', __FILE__ );
 						}
+					} else {
+						$invalid = true;
+						$errorType = 'UserException';
+						$errorMessage = __( 'Invalid token', 'bim-bcf-management' );
+					}
+				} elseif( $request[ 'request' ][ 'method' ] == 'getExtensions' ) {
+					$userId = BIMsie::getUserIdByToken( isset( $request[ 'token' ] ) ? $request[ 'token' ] : '' );
+					if( $userId !== false ) {
+						$options = BIMBCFManagement::getOptions();
+						$result = Array();
+						if( isset( $options[ 'topic_types' ] ) && $options[ 'topic_types' ] != '' ) {
+							$result[ 'TopicType' ] = explode( ',', $options[ 'topic_types' ] );
+						} else {
+							$result[ 'TopicType' ] = Array();
+						}
+						foreach( $result[ 'TopicType' ] as $key => $value ) {
+							$result[ 'TopicType' ][$key] = trim( $value );
+						}
+						if( isset( $options[ 'topic_statuses' ] ) && $options[ 'topic_statuses' ] != '' ) {
+							$result[ 'TopicStatus' ] = explode( ',', $options[ 'topic_statuses' ] );
+						} else {
+							$result[ 'TopicStatus' ] = Array();
+						}
+						foreach( $result[ 'TopicStatus' ] as $key => $value ) {
+							$result[ 'TopicStatus' ][$key] = trim( $value );
+						}
+						if( isset( $options[ 'topic_labels' ] ) && $options[ 'topic_labels' ] != '' ) {
+							$result[ 'TopicLabel' ] = explode( ',', $options[ 'topic_labels' ] );
+						} else {
+							$result[ 'TopicLabel' ] = Array();
+						}
+						foreach( $result[ 'TopicLabel' ] as $key => $value ) {
+							$result[ 'TopicLabel' ][$key] = trim( $value );
+						}
+						if( isset( $options[ 'snippet_types' ] ) && $options[ 'snippet_types' ] != '' ) {
+							$result[ 'SnippetType' ] = explode( ',', $options[ 'snippet_types' ] );
+						} else {
+							$result[ 'SnippetType' ] = Array();
+						}
+						foreach( $result[ 'SnippetType' ] as $key => $value ) {
+							$result[ 'SnippetType' ][$key] = trim( $value );
+						}
+						if( isset( $options[ 'priorities' ] ) && $options[ 'priorities' ] != '' ) {
+							$result[ 'Priority' ] = explode( ',', $options[ 'priorities' ] );
+						} else {
+							$result[ 'Priority' ] = Array();
+						}
+						foreach( $result[ 'Priority' ] as $key => $value ) {
+							$result[ 'Priority' ][$key] = trim( $value );
+						}
+						$result[ 'UserIdType' ] = BIMBCFManagement::getUserIdTypes();
 					} else {
 						$invalid = true;
 						$errorType = 'UserException';

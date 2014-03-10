@@ -9,6 +9,7 @@ Author URI: http://www.bastiaangrutters.nl
 Usage:
 Using shortcodes:
 [showIssues]
+[showMyIssues]
 [showIssue]
 [showAddZipForm]
 [showAddIssueForm]
@@ -17,7 +18,9 @@ Or using php functions in templates:
 <?php
 if( class_exists( 'BIMBCFManagement' ) ) {
 	// Show list of issues for this user
-	BIMBCFManagement::showIssues();
+	BIMBCFManagement::showMyIssues();
+	// Show list of issues accessible through Bimsie projects
+	BIMBCFManagement::showIssues();	
 	// Show details of the supplied issue's id if accessible for the current user
 	BIMBCFManagement::showIssue( $issueId );
 	// Display a form with which a zip archive of issues can be imported
@@ -55,6 +58,7 @@ class BIMBCFManagement {
 
 		// --- Add shortcodes ---
 		add_shortcode( 'showIssues', Array( 'BIMBCFManagement', 'showIssues' ) );
+		add_shortcode( 'showMyIssues', Array( 'BIMBCFManagement', 'showMyIssues' ) );
 		add_shortcode( 'showIssue', Array( 'BIMBCFManagement', 'showIssue' ) );
 		add_shortcode( 'showAddZipForm', Array( 'BIMBCFManagement', 'showAddZipForm' ) );
 		add_shortcode( 'showAddIssueForm', Array( 'BIMBCFManagement', 'showAddIssueForm' ) );
@@ -133,8 +137,52 @@ class BIMBCFManagement {
 	public static function showOptionsPage() {
 		include( plugin_dir_path( __FILE__ ) . 'bim-bcf-management-options.php' );
 	}
-
+	
 	public static function showIssues() {
+		if( is_user_logged_in() ) {
+			if( ( isset( $_GET[ 'bimsie' ] ) && $_GET[ 'bimsie' ] != '' ) || ( isset( $_POST[ 'bimsie' ] ) && $_POST[ 'bimsie' ] != '' ) ) {
+				// Show issues belonging to projects on this server
+				if( isset( $_GET[ 'bimsie' ] ) && $_GET[ 'bimsie' ] != '' ) {
+					// TODO: validate bimsie url
+					
+				} else {
+					// TODO: Add new bimsie server, store credentials or just use server with temporary credentials
+					
+				}
+			} else {
+				// Show bimsie
+				$bimsieServers = BIMBCFManagement::getBimsieServers();
+				foreach( $bimsieServers as $key => $bimsieServer ) {
+?>
+			<div class="bimsie-server-link">
+				<form method="<?php print( ( !isset( $bimsieServer[ 'remember' ] ) || $bimsieServer[ 'remember' ] == 0 ) ? 'post' : 'get' ); ?>" action="">
+					<h3><?php print( ( isset( $bimsieServer[ 'username' ] ) ? ( $bimsieServer[ 'username' ] . ' - ' ) : '' ) . $bimsieServer[ 'uri' ] ); ?></h3>
+					<input type="hidden" name="bimsie" value="<?php print( $bimsieServer[ 'uri' ] ); ?>" />
+<?php
+					if( !isset( $bimsieServer[ 'remember' ] ) || $bimsieServer[ 'remember' ] == 0 ) {
+?>
+					<input type="checkbox" name="remember" value="1" id="remember-<?php print( $key ); ?>" /> <label for="remember-<?php print( $key ); ?>"><?php _e( 'Remember me', 'bim-bcf-management' ); ?></label><br />
+					<label for="username-<?php print( $key ); ?>"><?php _e( 'Username', 'bim-bcf-management' ); ?></label> <input type="text" id="username-<?php print( $key ); ?>" placeholder="<?php _e( 'Username', 'bim-bcf-management' ); ?>" value="" /><br />
+					<label for="password-<?php print( $key ); ?>"><?php _e( 'Password', 'bim-bcf-management' ); ?></label> <input type="password" id="password-<?php print( $key ); ?>" placeholder="<?php _e( 'Password', 'bim-bcf-management' ); ?>" value="" /><br />
+<?php
+					}
+?>
+					<input type="submit" value="<?php _e( 'View', 'bim-bcf-management' ); ?>" />
+				</form> 
+				<a href="?bimsie=<?php print( urlencode( $bimsieServer[ 'uri' ] ) ); ?>"></a><br />
+			</div>
+<?php
+				}
+				// TODO: add new server form
+			}
+		} else {
+?>
+		<p><?php _e( 'Please log in to access this page', 'bim-bcf-management' ); ?></p>
+<?php			
+		}
+	}
+
+	public static function showMyIssues() {
 		if( is_user_logged_in() ) {
 			//print( "showIssues()<br />" );
 			$options = BIMBCFManagement::getOptions();
@@ -160,28 +208,38 @@ class BIMBCFManagement {
 					<th>&nbsp;</th>
 					<th><?php _e( 'Issue', 'bim-bcf-management' ); ?></th>
 					<th><?php _e( 'Date', 'bim-bcf-management' ); ?></th>
-					<th><?php _e( 'Author', 'bim-bcf-management' ); ?></th>
-					<th><?php _e( 'Project/Revision', 'bim-bcf-management' ); ?></th>
+					<th><?php _e( 'Bimsie server', 'bim-bcf-management' ); ?></th>
+					<th><?php _e( 'Poid', 'bim-bcf-management' ); ?></th>
+					<th><?php _e( 'Roid', 'bim-bcf-management' ); ?></th>
 				</tr>
 <?php
 				foreach( $myIssues as $issue ) {
-					$projects = get_post_meta( $issue->ID, 'project' );
-					$projectNames = '';
-					foreach( $projects as $project ) {
-						if( $projectNames != '' ) {
-							$projectNames .= ', ';
+					$poids = get_post_meta( $issue->ID, 'poid' );
+					$projects = '';
+					foreach( $poids as $poid ) {
+						if( $projects != '' ) {
+							$projects .= ', ';
 						}
-						$projectNames .= $project[ 'name' ] . ': ' . $project[ 'revision' ];
+						$projects .= $poid;
 					}
-					$author = get_post_meta( $issue->ID, 'Author', true );
+					$roids = get_post_meta( $issue->ID, 'roid' );
+					$revisions = '';
+					foreach( $roids as $roid ) {
+						if( $revisions != '' ) {
+							$revisions .= ', ';
+						}
+						$revisions .= $roid;
+					}
+					$bimsieServer = get_post_meta( $issue->ID, '_bimsie_uri', true );
 					$timestamp = strtotime( $issue->post_date );
 ?>
 				<tr class="<?php print( $index % 2 == 0 ? 'even' : 'odd' ); ?>">
 					<td><?php print( get_the_post_thumbnail( $issue->ID, 'issue-list-thumb' ) ); ?></td>
 					<td><a href="<?php print( get_bloginfo( 'wpurl' ) . $options[ 'issue_details_uri' ] . '?id=' . $issue->ID );  ?>"><?php print( $issue->post_title ); ?></a></<td>
 					<td><?php print( date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp ) ); ?></<td>
-					<td><?php print( $author == '' ? '-' : $author ); ?></<td>
-					<td><?php print( $projectNames == '' ? '-' : $projectNames ); ?></<td>
+					<td><?php print( $bimsieServer == '' ? '-' : $bimsieServer ); ?></<td>
+					<td><?php print( $projects == '' ? '-' : $projects ); ?></<td>
+					<td><?php print( $revisions == '' ? '-' : $revisions ); ?></<td>
 				</tr>
 <?php
 					$index ++;
@@ -228,7 +286,24 @@ class BIMBCFManagement {
 				$currentUserId = get_current_user_id();
 				$issue = get_post( $issueId );
 				if( $issue->post_author == $currentUserId && $issue->post_type == $options[ 'bcf_issue_post_type' ] ) {
-					$projects = get_post_meta( $issue->ID, 'project' );
+					$poids = get_post_meta( $issue->ID, 'poid' );
+					$projects = '';
+					foreach( $poids as $poid ) {
+						if( $projects != '' ) {
+							$projects .= ', ';
+						}
+						$projects .= $poid;
+					}
+					$roids = get_post_meta( $issue->ID, 'roid' );
+					$revisions = '';
+					foreach( $roids as $roid ) {
+						if( $revisions != '' ) {
+							$revisions .= ', ';
+						}
+						$revisions .= $roid;
+					}
+					
+					/*$projects = get_post_meta( $issue->ID, 'project' );
 					$projectNames = '';
 					$revisions = '';
 					foreach( $projects as $project ) {
@@ -240,7 +315,7 @@ class BIMBCFManagement {
 							$revisions .= ', ';
 						}
 						$revisions .= $project[ 'revision' ];
-					}
+					}*/
 					//$author = get_post_meta( $issue->ID, 'Author', true );
 					//$verbalStatus = get_post_meta( $issue->ID, 'VerbalStatus', true );
 					//$status = get_post_meta( $issue->ID, 'Status', true );
@@ -255,12 +330,12 @@ class BIMBCFManagement {
 					<td><?php print( date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp ) ); ?></td>
 				</tr>
 				<tr>
-					<td><?php _e( 'Revision', 'bim-bcf-management' ); ?></td>
-					<td><?php print( $revisions != '' ? $revisions : '-' );  ?></td>
+					<td><?php _e( 'Project', 'bim-bcf-management' ); ?></td>
+					<td><?php print( $projects != '' ? $projects : '-' );  ?></td>
 				</tr>
 				<tr>
-					<td><?php _e( 'Project', 'bim-bcf-management' ); ?></td>
-					<td><?php print( $projectNames != '' ? $projectNames : '-' );  ?></td>
+					<td><?php _e( 'Revision', 'bim-bcf-management' ); ?></td>
+					<td><?php print( $revisions != '' ? $revisions : '-' );  ?></td>
 				</tr>
 				<!--tr>
 					<td><?php _e( 'Verbal status', 'bim-bcf-management' ); ?></td>
@@ -455,7 +530,7 @@ class BIMBCFManagement {
 						ifcProjects: <?php print( json_encode( $projectIds ) ); ?>,
 						text: {
 							selectServerTitle: "<?php _e( 'Select a BIMsie server or enter a new one', 'bim-bcf-management' ); ?>",
-							selectServerTitle: "<?php _e( 'Select the project for each file', 'bim-bcf-management' ); ?>",
+							selectProjectTitle: "<?php _e( 'Select the project for each file', 'bim-bcf-management' ); ?>",
 							newServerLabel: "<?php _e( 'Add BIMSie server URI', 'bim-bcf-management' ); ?>",
 							submitServer: "<?php _e( 'Retrieve information', 'bim-bcf-management' ); ?>",
 							selectServerLabel: "<?php _e( 'Select BIMSie server', 'bim-bcf-management' ); ?>",
@@ -601,24 +676,37 @@ class BIMBCFManagement {
 	// Import issue from json data and set all special fields
 	private static function addIssue( $jsonIssue, $userId = -1 ) {
 		$options = BIMBCFManagement::getOptions();
-		$currentUserId = $userId == -1 ? get_current_user_id() : $userId;
+		$userId = $userId == -1 ? get_current_user_id() : $userId;
 		
-		if( isset( $jsonIssue ) && isset( $jsonIssue[ 'markup' ] ) && isset( $jsonIssue[ 'visualizationinfo' ] ) ) {
+		if( isset( $jsonIssue ) && isset( $jsonIssue[ 'markup' ] ) && isset( $jsonIssue[ 'visualizationinfo' ] ) && isset( $jsonIssue[ 'markup' ][ 'Topic' ] ) ) {
 			// TODO: place information in special fields for faster access
-			$guid = BIMBCFManagement::getRandomGuid();
+			if( !isset( $jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ] ) || !isset( $jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ][ 'Guid' ] ) ) {
+				$guid = BIMBCFManagement::getRandomGuid();
+				$jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ][ 'Guid' ] = $guid;
+			}
 			$postData = Array(
-				'post_title' => $guid,
+				'post_title' => isset( $jsonIssue[ 'markup' ][ 'Topic' ][ 'Title' ] ) ? $jsonIssue[ 'markup' ][ 'Topic' ][ 'Title' ] : $jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ][ 'Guid' ],
 				'post_content' => '',
 				'post_status' => 'publish',
 				'post_type' => $options[ 'bcf_issue_post_type' ],
-				'post_author' => $currentUserId
+				'post_author' => $userId
 			);
 			$postId = wp_insert_post( $postData );
 			if( $postId > 0 ) {
-				add_post_meta( $postId, 'guid', $guid );
+				add_post_meta( $postId, 'guid', $jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ][ 'Guid' ] );
 				add_post_meta( $postId, 'import_status', 'complete', true );
 				add_post_meta( $postId, 'markup', $jsonIssue[ 'markup' ], false );
 				add_post_meta( $postId, 'visualizationinfo', $jsonIssue[ 'visualizationinfo' ], false );
+				if( isset( $jsonIssue[ 'markup' ][ 'Header' ] ) && isset( $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ] ) && is_array( $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ] ) ) {
+					foreach( $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ] as $file ) {
+						if( isset( $file[ 'project' ] ) ) {
+							add_post_meta( $postId, 'poid', $file[ 'project' ] );
+						}
+						if( isset( $file[ 'revision' ] ) ) {
+							add_post_meta( $postId, 'roid', $file[ 'revision' ] );
+						}
+					}
+				}
 				if( isset( $jsonIssue[ 'projectextension' ] ) ) {
 					add_post_meta( $postId, 'projectextension', $jsonIssue[ 'projectextension' ], false );
 				}
@@ -725,6 +813,7 @@ class BIMBCFManagement {
 		global $wpdb;
 		if( is_user_logged_in() ) {
 			$options = BIMBCFManagement::getOptions();
+			$bimsieServers = BIMBCFManagement::getBimsieServers();
 			$topicStatuses = explode( ',', $options[ 'topic_statuses' ] );
 			$topicTypes = explode( ',', $options[ 'topic_types' ] );
 			$topicLabels = explode( ',', $options[ 'topic_labels' ] );
@@ -748,11 +837,13 @@ class BIMBCFManagement {
 								'Bitmap' => Array()
 						)
 				);
-				if( is_array( $_POST[ 'file_filename' ] ) ) {
-					foreach( $_POST[ 'file_filename' ] as $key => $filename ) {
-						if( $filename != '' ) {
+				if( is_array( $_POST[ 'file_project' ] ) ) {
+					foreach( $_POST[ 'file_project' ] as $key => $project ) {
+						if( $project != '' ) {
 							$jsonIssue[ 'markup' ][ 'Header' ][ 'File' ][] = Array( 
-									'Filename' => $filename,
+									'project' => $project,
+									'revision' => isset( $_POST[ 'file_revision' ][$key] ) ? $_POST[ 'file_revision' ][$key] : '',
+									'Filename' => isset( $_POST[ 'file_reference' ][$key] ) ? $_POST[ 'file_reference' ][$key] : '',
 									'Date' => isset( $_POST[ 'file_date' ][$key] ) ? $_POST[ 'file_date' ][$key] : date( 'Y-m-d\TH:i:sP' ),
 									'Reference' => isset( $_POST[ 'file_reference' ][$key] ) ? $_POST[ 'file_reference' ][$key] : '',
 									'@attributes' => Array(
@@ -992,7 +1083,20 @@ class BIMBCFManagement {
 				}
 				$postId = BIMBCFManagement::addIssue( $jsonIssue );
 				if( $postId !== false ) {
-					// TODO: add images to this post and set first as featured
+					$server = isset( $_POST[ 'bimsie_server_uri' ] ) ? $_POST[ 'bimsie_server_uri' ] : '';
+					if( is_numeric( $server ) ) {
+						if( isset( $bimsieServers[$server] ) ) {
+							add_post_meta( $postId, '_bimsie_uri', $bimsieServers[$server][ 'uri' ] );
+						} else {
+							update_post_meta( $postId, 'import_status', 'pending' );
+						}
+					} elseif( $server != '' ) {
+						add_post_meta( $postId, '_bimsie_uri', $server );
+					} else {
+						update_post_meta( $postId, 'import_status', 'pending' );
+					}
+					
+					// add images to this post and set first as featured
 					$first = true;
 					foreach( $attachments as $attachmentId ) {
 						$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->posts}
@@ -1016,6 +1120,38 @@ class BIMBCFManagement {
 			}
 ?>
 			<form method="post" action="" id="add-issue-form" enctype="multipart/form-data">
+				<h3><?php _e( 'Bimsie server', 'bim-bcf-management' ); ?></h3>
+				<div id="bimsie-server-selection">
+					<div class="status"></div>
+<?php 
+			if( count( $bimsieServers ) > 0 ) {
+?>
+					<label for="server-selection"><?php _e( 'Select BIMSie server', 'bim-bcf-management' ); ?></label> <select id="server-selection" onchange="BIMBCFManagement.frontEndServerSelected();">
+						<option value=""><?php _e( 'Add BIMSie server URI', 'bim-bcf-management' ); ?></option>
+<?php
+				foreach( $bimsieServers as $key => $server ) {
+?>
+						<option value="<?php print( $key ); ?>"><?php print( $server[ 'uri' ] . ( isset( $server[ 'username' ] ) ? ( ' - ' . $server[ 'username' ] ) : '' ) ); ?></option>
+<?php 
+				}
+?>					
+					</select><br />
+					<div class="new-server-container">
+						<label for="new-bimsie-server"><?php _e( 'Add BIMSie server URI', 'bim-bcf-management' ); ?></label> 
+						<input id="new-bimsie-server" type="text" />
+					</div><br />
+					<div class="toggle-server-info hidden">
+						<input type="checkbox" id="server-remember-user" /> <label for="server-remember-user"><?php _e( 'Remember user', 'bim-bcf-management' ); ?></label>
+						<div class="clear"></div><br />
+						<label for="bimsie-username"><?php _e( 'Username', 'bim-bcf-management' ); ?></label> <input id="bimsie-username" type="text" /><br />
+						<label for="bimsie-password"><?php _e( 'Password', 'bim-bcf-management' ); ?></label> <input id="bimsie-password" type="password" /><br />
+					</div> 
+					<input type="button" value="<?php _e( 'Connect', 'bim-bcf-management' ); ?>" onclick="BIMBCFManagement.frontEndSubmitServerSelection();" />
+				</div>
+				<input type="hidden" id="bimsie-server-uri" name="bimsie_server_uri" />
+<?php
+			}
+?>				
 				<h3><?php _e( 'Markup', 'bim-bcf-management' ); ?></h3>
 				<h4><?php _e( 'Header', 'bim-bcf-management' ); ?></h4>
 				<h5><?php _e( 'File', 'bim-bcf-management' ); ?></h5>
@@ -1030,7 +1166,11 @@ class BIMBCFManagement {
 					<input type="text" id="file-ifcproject-0" name="file_ifcproject[]" /><br />
 					<label for="file-ifcspatial-0"><?php _e( 'Ifc Spatial Structure Element', 'bim-bcf-management' ); ?></label>
 					<input type="text" id="file-ifcspatial-0" name="file_spatial[]" /><br />
-					File must be external<br />
+					<label for="file-project-0" class="project-place-holder"><?php _e( 'Bimsie project', 'bim-bcf-management' ); ?></label>
+					<span class="select-project"><?php _e( 'Connect to a Bimsie server to get a project list', 'bim-bcf-management' ); ?></span>
+					<br />
+					<label for="file-revision-0" class="revision-place-holder"><?php _e( 'Bimsie revision', 'bim-bcf-management' ); ?></label>
+					<br />
 				</div>
 				<a href="#" class="more-items" id="more-file"><?php _e( 'Add file', 'bim-bcf-management' ); ?></a><br />
 				<h4><?php _e( 'Topic', 'bim-bcf-management' ); ?></h4>
@@ -1280,8 +1420,31 @@ class BIMBCFManagement {
 				<div class="submit-container">
 					<input type="submit" name="submit" value="<?php _e( 'Submit', 'bim-bcf-management' ); ?>" />
 				</div>
-				Note: Comments can be added after the issue is created
 			</form>
+			<script type="text/javascript">
+				var bimBCFManagementSettings = {
+					ajaxURI: "<?php print( plugins_url( 'ajax-handler.php' , __FILE__ ) ); ?>",
+					loadingImage: "<img class=\"loading-image\" src=\"<?php bloginfo( 'wpurl' ); ?>/wp-admin/images/loading.gif\" alt=\"loading...\" />",
+					bimsieServers: <?php print( json_encode( $bimsieServers ) ); ?>,
+					text: {
+						serverSubmitError: "<?php _e( 'Supply a BIMSie server URI, username and password or select one from your list.', 'bim-bcf-management' ); ?>",
+						noKnownRevisions: "<?php _e( 'There are no revisions for this project.', 'bim-bcf-management' ); ?>",
+						serverSelected: "<?php _e( 'Connected to Bimsie Server', 'bim-bcf-management' ); ?>",
+						
+						selectServerTitle: "<?php _e( 'Select a BIMsie server or enter a new one', 'bim-bcf-management' ); ?>",
+						selectProjectTitle: "<?php _e( 'Select the project for each file', 'bim-bcf-management' ); ?>",
+						newServerLabel: "<?php _e( 'Add BIMSie server URI', 'bim-bcf-management' ); ?>",
+						submitServer: "<?php _e( 'Retrieve information', 'bim-bcf-management' ); ?>",
+						selectServerLabel: "<?php _e( 'Select BIMSie server', 'bim-bcf-management' ); ?>",
+						noServerOption: "--- <?php _e( 'New server', 'bim-bcf-management' ); ?> ---",
+						rememberServerLabel: "<?php _e( 'Remember user', 'bim-bcf-management' ); ?>",
+						serverUserLabel: "<?php _e( 'Username', 'bim-bcf-management' ); ?>",
+						serverPasswordLabel: "<?php _e( 'Password', 'bim-bcf-management' ); ?>",
+						noProjectsFoundMessage: "<?php _e( 'No projects could be found on this BIMSie server for this user.', 'bim-bcf-management' ); ?>",
+						revision: "<?php _e( 'Revision', 'bim-bcf-management' ); ?>"
+					}
+				};
+			</script>
 <?php
 		} else {
 ?>
