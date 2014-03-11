@@ -150,4 +150,253 @@ class BIMsie {
 			return false;
 		}
 	}
+	
+	public static function createBimsieCacheItem( $uri, $projects ) {
+		$bimsieCacheItem = Array( 'uri' => $uri, 'projects' => Array() );
+		foreach( $projects as $project ) {
+			$bimsieCacheItem[ 'projects' ][ $project->oid ] = $project;
+		}
+		return $bimsieCacheItem;
+	}
+	
+	public static function getProjects( $uri, $userId = -1 ) {
+		$server = BIMsie::getServerByUri( $uri, $userId );
+		if( $server === false ) {
+			return false;
+		} else {
+			$userId = $userId == -1 ? get_current_user_id() : $userId;
+			BIMsie::request( $server[ 'uri' ], $server[ 'token' ], 'Bimsie1ServiceInterface', 'getAllProjects', Array( 'onlyTopLevel' => 'false', 'onlyActive' => 'false' ) );
+			$error = BIMsie::getErrorMessage( $projects );
+			if( $error === false && isset( $projects ) && isset( $projects->response ) && isset( $projects->response->result ) ) {
+				$projects = $projects->response->result;
+				$bimsieCache = BIMsie::createBimsieCacheItem( $uri, $projects );
+				BIMsie::updateCache( $bimsieCache, $userId );
+				if( isset( $bimsieCache[ 'projects' ] ) ) {
+					return $bimsieCache[ 'projects' ];
+				} else {
+					return false;
+				}
+			} else {
+				return false;
+			}
+		}
+	}
+	
+	public static function getProject( $uri, $poid, $userId = -1 ) {
+		$server = BIMsie::getServerByUri( $uri, $userId );
+		if( $server === false ) {
+			return false;
+		} else {
+			$userId = $userId == -1 ? get_current_user_id() : $userId;
+			$bimsieCache = BIMsie::getCacheByUri( $uri, $userId );
+			if( $bimsieCache === false || !isset( $bimsieCache[ 'projects' ][$poid] ) ) {
+				// Retrieve data from Bimsie server if possible
+				if( $server[ 'remember' ] == 1 ) {
+					$projects = BIMSie::getProjects( $uri, $userId );
+					if( $projects && isset( $projects[ 'projects' ][$poid] ) ) {
+						return $projects[ 'projects' ][$poid];
+					} else {
+						return false;
+					}
+				} else {
+					return false;
+				}
+			} else {
+				return $bimsieCache[ 'projects' ][$poid];
+			}
+		}
+	}
+	
+	public static function getRevision( $uri, $poid, $roid, $userId = -1 ) {
+		$server = BIMsie::getServerByUri( $uri, $userId );
+		if( $server === false ) {
+			return false;
+		} else {
+			$userId = $userId == -1 ? get_current_user_id() : $userId;
+			$bimsieCache = BIMsie::getCacheByUri( $uri, $userId );
+			if( $bimsieCache === false || !isset( $bimsieCache[ 'projects' ][$poid] ) ) {
+				$project = BIMsie::getProject( $uri, $poid, $userId );
+				if( $project ) {
+					$bimsieCache = BIMsie::getCacheByUri( $uri, $userId );
+					if( $server[ 'remember' ] == 1 ) {
+						$revisions = BIMsie::request( $server[ 'uri' ], $server[ 'token' ], 'Bimsie1ServiceInterface', 'getAllRevisionsOfProject', Array( 'poid' => $poid ) );
+						$error = BIMsie::getErrorMessage( $revisions );
+						if( $error === false && isset( $revisions ) && isset( $revisions->response ) && isset( $revisions->response->result ) ) {
+							$revisions = $revisions->response->result;
+							$bimsieCache[ 'projects' ][$poid]->revisions = Array();
+							foreach( $revisions as $revision ) {
+								$revision->dateString = date( 'd-m-Y H:i', $revision->date * 0.001 );
+								$revision->name = $revision->dateString . ' - ' . $revision->comment;
+								$bimsieCache[ 'projects' ][$poid]->revisions[$revision->oid] = $revision;
+							}
+							BIMsie::updateCache( $bimsieCache, $userId );
+							if( isset( $bimsieCache[ 'projects' ][$poid]->revisions[$roid] ) ) {
+								return $bimsieCache[ 'projects' ][$poid]->revisions[$roid];
+							} else {
+								return false;
+							}
+						} else {
+							return false;
+						}
+					} else {
+						return false;
+					}
+				} else {
+					return false;
+				}
+			} elseif( isset( $bimsieCache[ 'projects' ] ) && isset( $bimsieCache[ 'projects' ][$poid] ) && isset( $bimsieCache[ 'projects' ][$poid]->revisions ) && isset( $bimsieCache[ 'projects' ][$poid]->revisions[$roid] ) ) {
+				return $bimsieCache[ 'projects' ][$poid]->revisions[$roid];
+			} else {
+				if( !isset( $bimsieCache[ 'projects' ][$poid]->revisions ) || !isset( $bimsieCache[ 'projects' ][$poid]->revisions[$roid] ) ) {
+					if( $server[ 'remember' ] == 1 ) {
+						$revisions = BIMsie::request( $server[ 'uri' ], $server[ 'token' ], 'Bimsie1ServiceInterface', 'getAllRevisionsOfProject', Array( 'poid' => $poid ) );
+						$error = BIMsie::getErrorMessage( $revisions );
+						if( $error === false && isset( $revisions ) && isset( $revisions->response ) && isset( $revisions->response->result ) ) {
+							$revisions = $revisions->response->result;
+							$bimsieCache[ 'projects' ][$poid]->revisions = Array();
+							foreach( $revisions as $revision ) {
+								$revision->dateString = date( 'd-m-Y H:i', $revision->date * 0.001 );
+								$revision->name = $revision->dateString . ' - ' . $revision->comment;
+								$bimsieCache[ 'projects' ][$poid]->revisions[$revision->oid] = $revision;
+							}
+							BIMsie::updateCache( $bimsieCache, $userId );
+							if( isset( $bimsieCache[ 'projects' ][$poid]->revisions[$roid] ) ) {
+								return $bimsieCache[ 'projects' ][$poid]->revisions[$roid];
+							} else {
+								return false;
+							}
+						} else {
+							return false;
+						}
+					} else {
+						return false;
+					}
+				} else {
+					return false;
+				}
+			}
+		}
+	}
+		
+	private static function getCacheByUri( $uri, $userId ) {
+		$bimsieCache = get_user_meta( $userId, 'bimsie-cache' );
+		$cacheItem = false;
+		foreach( $bimsieCache as $bimsieCacheItem ) {
+			if( $bimsieCacheItem[ 'uri' ] == $uri ) {
+				$cacheItem = $bimsieCacheItem;
+				break;
+			}
+		}
+		return $cacheItem;
+	}
+	
+	private static function updateCache( $cacheItem, $userId ) {
+		$bimsieCache = get_user_meta( $userId, 'bimsie-cache' );
+		$found = false;
+		foreach( $bimsieCache as $key => $bimsieCacheItem ) {
+			if( $bimsieCacheItem[ 'uri' ] == $cacheItem[ 'uri' ] ) {
+				$bimsieCache[$key] = $cacheItem;
+				$found = true;
+				break;
+			}
+		}
+		if( !$found ) {
+			$bimsieCache[] = $cacheItem;
+		}
+		delete_user_meta( $userId, 'bimsie-cache' );
+		foreach( $bimsieCache as $bimsieCacheItem ) {
+			add_user_meta( $userId, 'bimsie-cache', $bimsieCacheItem );
+		}
+	}
+
+	public static function getServers( $excludeAuthInfo = true, $userId = -1 ) {
+		$userId = $userId == -1 ? get_current_user_id() : $userId;
+		$bimsieServers = get_user_meta( $userId, 'bimsie-servers' );
+		if( $excludeAuthInfo ) {
+			$servers = Array();
+			foreach( $bimsieServers as $bimsieServer ) {
+				$server = Array( 'uri' => $bimsieServer[ 'uri' ], 'remember' => $bimsieServer[ 'remember' ] );
+				if( $bimsieServer[ 'remember' ] == 1 && isset( $bimsieServer[ 'username' ] ) ) {
+					$server[ 'username' ] = $bimsieServer[ 'username' ];
+				}
+				$servers[] = $server;
+			}
+			return $servers;
+		} else {
+			return $bimsieServers;
+		}
+	}
+
+	public static function getServerById( $serverId, $userId = -1 ) {
+		$servers = BIMsie::getServers( false, $userId );
+		if( isset( $servers[$serverId] ) ) {
+			return $servers[$serverId];
+		} else {
+			return false;
+		}
+	}
+	
+	public static function getServerByUri( $uri, $userId = -1 ) {
+		$servers = BIMsie::getServers( false, $userId );
+		$foundServer = false;
+		foreach( $servers as $server ) {
+			if( $server[ 'uri' ] == $uri ) {
+				$foundServer = $server;
+				break;
+			}
+		}
+		return $foundServer;
+	}
+		
+	public static function updateServer( $uri, $username, $password, $remember, $userId = -1 ) {
+		$servers = BIMsie::getBimsieServers( false, $userId );
+		$found = false;
+		foreach( $servers as $key => $server ) {
+			if( $server[ 'uri' ] == $uri ) {
+				if( $remember == 1 ) {
+					$servers[$key] = Array( 'uri' => $uri, 'remember' => 1, 'username' => $username, 'password' => $password );
+				} else {
+					$servers[$key] = Array( 'uri' => $uri, 'remember' => 0 );
+				}
+				$found = true;
+				$serverId = $key;
+				break;
+			}
+		}
+		if( !$found ) {
+			$serverId = count( $servers );
+			if( $remember == 1 ) {
+				add_user_meta( get_current_user_id(), 'BIMsie-servers', Array( 'uri' => $uri, 'remember' => 1, 'username' => $username, 'password' => $password ) );
+			} else {
+				add_user_meta( get_current_user_id(), 'BIMsie-servers', Array( 'uri' => $uri, 'remember' => 0 ) );
+			}
+		} else {
+			delete_user_meta( get_current_user_id(), 'BIMsie-servers' );
+			foreach( $servers as $server ) {
+				add_user_meta( get_current_user_id(), 'BIMsie-servers', $server );
+			}
+		}
+		return $servers[$serverId];
+	}
+	
+	public static function getHierarchicalProjects( $projects ) {
+		$hierarchicalProjects = Array();
+		$added = Array();
+		foreach( $projects as $project ) {
+			if( $project->parentId == -1 && !in_array( $project->oid, $added ) ) {
+				$added[] = $project->oid;
+				$hierarchicalProjects[] = $project;
+				foreach( $project->subProjects as $subProjectId ) {
+					foreach( $projects as $subProject ) {
+						if( $subProjectId == $subProject->oid && !in_array( $subProject->oid, $added ) ) {
+							$added[] = $subProject->oid;
+							$subProject->name = ' - ' . $subProject->name;
+							$hierarchicalProjects[] = $subProject;
+						}
+					}
+				}
+			}
+		}
+		return $hierarchicalProjects;
+	}
 }

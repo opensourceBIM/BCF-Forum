@@ -8,7 +8,7 @@ if( isset( $_POST[ 'method' ] ) ) {
 	// Server selected by id
 	if( isset( $_POST[ 'serverId' ] ) && ctype_digit( $_POST[ 'serverId' ] ) ) {
 		$serverId = $_POST[ 'serverId' ];
-		$server = BIMBCFManagement::getBimsieServerById( $serverId );
+		$server = BIMsie::getServerById( $serverId );
 		if( $server !== false ) {
 			$uri = $server[ 'uri' ];
 			$noServer = false;
@@ -29,33 +29,8 @@ if( isset( $_POST[ 'method' ] ) ) {
 		$uri = $_POST[ 'serverURI' ];
 		$username = $_POST[ 'username' ];
 		$password = $_POST[ 'password' ];
-		$servers = BIMBCFManagement::getBimsieServers( false );
-		$found = false;
-		foreach( $servers as $key => $server ) {
-			if( $server[ 'uri' ] == $uri ) {
-				if( isset( $_POST[ 'remember' ] ) && $_POST[ 'remember' ] == 'true' ) {
-					$servers[$key] = Array( 'uri' => $uri, 'remember' => 1, 'username' => $username, 'password' => $password );
-				} else {
-					$servers[$key] = Array( 'uri' => $uri, 'remember' => 0 );
-				}
-				$found = true;
-				$serverId = $key;
-				break;
-			}
-		}
-		if( !$found ) {
-			$serverId = count( $servers );
-			if( isset( $_POST[ 'remember' ] ) && $_POST[ 'remember' ] == 'true' ) {
-				add_user_meta( get_current_user_id(), 'bimsie-servers', Array( 'uri' => $uri, 'remember' => 1, 'username' => $username, 'password' => $password ) );
-			} else {
-				add_user_meta( get_current_user_id(), 'bimsie-servers', Array( 'uri' => $uri, 'remember' => 0 ) );
-			}
-		} else {
-			delete_user_meta( get_current_user_id(), 'bimsie-servers' );
-			foreach( $servers as $server ) {
-				add_user_meta( get_current_user_id(), 'bimsie-servers', $server );
-			}
-		}
+		$remember = ( isset( $_POST[ 'remember' ] ) && $_POST[ 'remember' ] == 'true' ) ? 1 : 0;
+		Bimsie::updateServer( $uri, $username, $password, $remember );
 	}
 	
 	if( $serverId != -1 ) {
@@ -65,13 +40,13 @@ if( isset( $_POST[ 'method' ] ) ) {
 			$token = BIMsie::publicRequest( $uri, 'Bimsie1AuthInterface', 'login', Array( 'username' => $username, 'password' => $password ) );
 			if( isset( $token ) && isset( $token->response ) && isset( $token->response->result ) && BIMsie::getErrorMessage( $token ) === false ) {
 				$token = $token->response->result;
-				$servers = BIMBCFManagement::getBimsieServers( false );
+				$servers = BIMsie::getServers( false );
 				foreach( $servers as $server ) {
 					if( $server[ 'uri' ] == $uri ) {
 						$oldServer = $server;
 						$server[ 'token' ] = $token;
 						$server[ 'tokenValid' ] = time() + 900; // TODO: Tokens set for 15 minutes atm, maybe I should retrieve this per server
-						update_user_meta( get_current_user_id(), 'bimsie-servers', $server, $oldServer );
+						update_user_meta( get_current_user_id(), 'BIMsie-servers', $server, $oldServer );
 						break;
 					}
 				}
@@ -83,11 +58,10 @@ if( isset( $_POST[ 'method' ] ) ) {
 		}
 		
 		if( $_POST[ 'method' ] == 'selectServer' ) {
-			// TODO: maybe only retrieve active/top level projects?
 			$projects = BIMsie::request( $uri, $token, 'Bimsie1ServiceInterface', 'getAllProjects', Array( 'onlyTopLevel' => 'false', 'onlyActive' => 'false' ) );
 			$error = BIMsie::getErrorMessage( $projects );
 			if( $error === false && isset( $projects ) && isset( $projects->response ) && isset( $projects->response->result ) ) {
-			 	$projects = $projects->response->result;
+			 	$projects = BIMsie::getHierarchicalProjects( $projects->response->result );
 			} else {
 				$projects = null;
 			}
@@ -95,16 +69,16 @@ if( isset( $_POST[ 'method' ] ) ) {
 			if( isset( $projects ) ) {
 				$projects = ( Array ) $projects;
 				$response[ 'projects' ] = $projects;
-				// at this point we set the  bimsie server per pending issue
+				// at this point we set the  BIMsie server per pending issue
 				if( !isset( $_POST[ 'type' ] ) || $_POST[ 'type' ] == 'pending' ) {
-					BIMBCFManagement::setBimsieUriForPendingIssues( $uri );
+					BIMBCFManagement::setBIMsieUriForPendingIssues( $uri );
 				}
 			}
 			if( isset( $error ) && $error !== false ) {
 				$response[ 'error' ] = $error;
 			}
 		} elseif( $_POST[ 'method' ] == 'submitProjects' ) {
-			// set this project for this issue and retrieve a list of revisions for this project from the BIMSie server
+			// set this project for this issue and retrieve a list of revisions for this project from the BIMsie server
 			$projects = isset( $_POST[ 'projects' ] ) ? $_POST[ 'projects' ] : '';
 			$projects = explode( ',', $projects );
 			array_walk( $projects, 'intval' ); // I think project oid should always be an integer
@@ -115,10 +89,10 @@ if( isset( $_POST[ 'method' ] ) ) {
 			$projectsLackingRevision = BIMBCFManagement::setProjectForPendingIssues( $projects, $names, $revisions );
 			foreach( $projectsLackingRevision as $key => $project ) {
 				if( $project[ 'oid' ] != '' ) {
-					$bimsieResponse = BIMsie::request( $uri, $token, 'Bimsie1ServiceInterface', 'getAllRevisionsOfProject', Array( 'poid' => $project[ 'oid' ] ) );
-					$error = BIMsie::getErrorMessage( $bimsieResponse );
-					if( $error === false && isset( $bimsieResponse->response ) && isset( $bimsieResponse->response->result ) ) {
-						$projectsLackingRevision[$key][ 'revisions' ] = $bimsieResponse->response->result;
+					$BIMsieResponse = BIMsie::request( $uri, $token, 'Bimsie1ServiceInterface', 'getAllRevisionsOfProject', Array( 'poid' => $project[ 'oid' ] ) );
+					$error = BIMsie::getErrorMessage( $BIMsieResponse );
+					if( $error === false && isset( $BIMsieResponse->response ) && isset( $BIMsieResponse->response->result ) ) {
+						$projectsLackingRevision[$key][ 'revisions' ] = $BIMsieResponse->response->result;
 						foreach( $projectsLackingRevision[$key][ 'revisions' ] as $key2 => $revision ) {
 							if( isset( $revision->date ) && is_numeric( $revision->date ) ) {
 								$projectsLackingRevision[$key][ 'revisions' ][$key2]->dateString = date( 'd-m-Y H:i', $revision->date * 0.001 );
@@ -137,12 +111,12 @@ if( isset( $_POST[ 'method' ] ) ) {
 			}
 			$response[ 'projects' ] = $projectsLackingRevision;
 		} elseif( $_POST[ 'method' ] == 'getRevisions' ) {
-			// set this project for this issue and retrieve a list of revisions for this project from the BIMSie server
+			// set this project for this issue and retrieve a list of revisions for this project from the BIMsie server
 			$poid = isset( $_POST[ 'poid' ] ) ? intval( $_POST[ 'poid' ] ) : -1;
-			$bimsieResponse = BIMsie::request( $uri, $token, 'Bimsie1ServiceInterface', 'getAllRevisionsOfProject', Array( 'poid' => $poid ) );
-			$error = BIMsie::getErrorMessage( $bimsieResponse );
-			if( $error === false && isset( $bimsieResponse->response ) && isset( $bimsieResponse->response->result ) ) {
-				$response[ 'revisions' ] = $bimsieResponse->response->result;
+			$BIMsieResponse = BIMsie::request( $uri, $token, 'Bimsie1ServiceInterface', 'getAllRevisionsOfProject', Array( 'poid' => $poid ) );
+			$error = BIMsie::getErrorMessage( $BIMsieResponse );
+			if( $error === false && isset( $BIMsieResponse->response ) && isset( $BIMsieResponse->response->result ) ) {
+				$response[ 'revisions' ] = $BIMsieResponse->response->result;
 				foreach( $response[ 'revisions' ] as $key => $revision ) {
 					if( isset( $revision->date ) && is_numeric( $revision->date ) ) {
 						$response[ 'revisions' ][$key]->dateString = date( 'd-m-Y H:i', $revision->date * 0.001 );

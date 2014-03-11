@@ -61,7 +61,7 @@ BIMBCFManagement.showProjectList = function() {
 		var html = "";
 		for( var p = 0; p < bimBCFManagementSettings.ifcProjects.length; p ++ ) {
 			html += "<div class=\"project\"><label class=\"wide-label\" for=\"project-" + p + "\">" + bimBCFManagementSettings.ifcProjects[p] + "</label><div class=\"clear\"></div>";
-			html += "<select id=\"project-" + p + "\" class=\"select-project\"><option value=\"\"> - </option>";
+			html += "<select id=\"project-" + p + "\" class=\"select-project\"><option value=\"\">&nbsp;</option>";
 			for( var i = 0; i < BIMBCFManagement.projectList.length; i ++ ) {
 				html += "<option value=\"" + BIMBCFManagement.projectList[i].oid + "\">" + BIMBCFManagement.projectList[i].name + "</option>";
 			}
@@ -407,7 +407,7 @@ BIMBCFManagement.frontEndSelectServer = function( response ) {
 			}
 			html += "</select>";
 			jQuery( ".project-place-holder" ).each( function() {
-				jQuery( "<select id=\"file-project-" + count + "\" name=\"file_project[]\" class=\"select-project\"><option value=\"\"> - </option>" + html ).insertAfter( this );
+				jQuery( "<select id=\"file-project-" + count + "\" name=\"file_project[]\" class=\"select-project\"><option value=\"\">&nbsp;</option>" + html ).insertAfter( this );
 				count ++;
 			} );
 			
