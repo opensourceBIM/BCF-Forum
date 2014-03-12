@@ -343,7 +343,7 @@ class BIMsie {
 		$foundServer = false;
 		foreach( $servers as $server ) {
 			$oldServer = $server;
-			if( $server[ 'uri' ] == $uri ) {
+			if( BIMBCFManagement::removeProtocol($server[ 'uri' ] ) == BIMBCFManagement::removeProtocol( $uri ) ) {
 				$foundServer = $server;
 				if( $foundServer[ 'remember' ] == 0 ) {
 					if( isset( $_POST[ 'username' ] ) && isset( $_POST[ 'password' ] ) ) {

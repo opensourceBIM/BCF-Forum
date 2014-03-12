@@ -45,7 +45,7 @@ if( isset( $_POST[ 'method' ] ) ) {
 					if( $server[ 'uri' ] == $uri ) {
 						$oldServer = $server;
 						$server[ 'token' ] = $token;
-						$server[ 'tokenValid' ] = time() + BIMsie::$tokenTimeout; // TODO: Tokens set for 15 minutes atm, maybe I should retrieve this per server
+						$server[ 'tokenValid' ] = time() + BIMsie::$tokenTimeout;
 						update_user_meta( get_current_user_id(), 'BIMsie-servers', $server, $oldServer );
 						break;
 					}

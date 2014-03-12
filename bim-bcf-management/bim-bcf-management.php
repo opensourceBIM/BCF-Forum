@@ -1802,6 +1802,7 @@ class BIMBCFManagement {
 						)
 				)
 		) );
+		$uri = BIMBCFManagement::removeProtocol( $uri );
 		foreach( $unsetIssues as $issue ) {
 			update_post_meta( $issue->ID, '_bimsie_uri', $uri );
 		}
@@ -1809,8 +1810,7 @@ class BIMBCFManagement {
 
 	public static function getIssuesByProjectRevision( $userId, $bimsieUrl, $poid, $roid ) {
 		$options = BIMBCFManagement::getOptions();
-		$bimsieUrl = str_replace( 'https://', '', $bimsieUrl );
-		$bimsieUrl = str_replace( 'http://', '', $bimsieUrl );
+		$bimsieUrl = BIMBCFManagement::removeProtocol( $bimsieUrl );
 		$issues = get_posts( Array(
 				'post_type' => $options[ 'bcf_issue_post_type' ],
 				'posts_per_page' => -1,
@@ -1886,6 +1886,11 @@ class BIMBCFManagement {
 			$commentData[ 'comment_content' ] = $commentData[ 'comment_content' ] . "\n" . __( 'Priority', 'bim-bcf-management' ) . ': ' . $priority;
 		}
 		return $commentData;
+	}
+	
+	public static function removeProtocol( $uri ) {
+		$parts = explode( '://', $uri );
+		return isset( $parts[1] ) ? $parts[1] : $uri;
 	}
 }
 
