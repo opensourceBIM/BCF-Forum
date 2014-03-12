@@ -86,7 +86,7 @@ class BIMsie {
 		global $wpdb;
 		$user = $wpdb->get_row( $wpdb->prepare( "SELECT ID, user_pass
 				FROM {$wpdb->users}
-				WHERE user_login = %s", $username ) );
+				WHERE user_login = %s OR user_email = %s", $username, $username ) );
 		if( isset( $user ) && wp_check_password( $password, $user->user_pass, $user->ID ) ) {
 			$tokenData = get_user_meta( $user->ID, 'bimsie_token', true );
 			if( isset( $tokenData ) && $tokenData != '' && $tokenData[ 'timestamp' ] > time() - Bimsie::$tokenTimeout ) { // Token is still valid
@@ -163,9 +163,9 @@ class BIMsie {
 		$server = BIMsie::getServerByUri( $uri, $userId );
 		if( $server === false ) {
 			return false;
-		} else {
+		} elseif( isset( $server[ 'token' ] ) && isset( $server[ 'tokenValid' ] ) && $server[ 'tokenValid' ] > time() ) {
 			$userId = $userId == -1 ? get_current_user_id() : $userId;
-			BIMsie::request( $server[ 'uri' ], $server[ 'token' ], 'Bimsie1ServiceInterface', 'getAllProjects', Array( 'onlyTopLevel' => 'false', 'onlyActive' => 'false' ) );
+			$projects = BIMsie::request( $server[ 'uri' ], $server[ 'token' ], 'Bimsie1ServiceInterface', 'getAllProjects', Array( 'onlyTopLevel' => 'false', 'onlyActive' => 'false' ) );
 			$error = BIMsie::getErrorMessage( $projects );
 			if( $error === false && isset( $projects ) && isset( $projects->response ) && isset( $projects->response->result ) ) {
 				$projects = $projects->response->result;
@@ -179,6 +179,8 @@ class BIMsie {
 			} else {
 				return false;
 			}
+		} else {
+			return false;
 		}
 	}
 	
@@ -191,7 +193,7 @@ class BIMsie {
 			$bimsieCache = BIMsie::getCacheByUri( $uri, $userId );
 			if( $bimsieCache === false || !isset( $bimsieCache[ 'projects' ][$poid] ) ) {
 				// Retrieve data from Bimsie server if possible
-				if( $server[ 'remember' ] == 1 ) {
+				if( isset( $server[ 'token' ] ) && isset( $server[ 'tokenValid' ] ) && $server[ 'tokenValid' ] > time() ) {
 					$projects = BIMSie::getProjects( $uri, $userId );
 					if( $projects && isset( $projects[ 'projects' ][$poid] ) ) {
 						return $projects[ 'projects' ][$poid];
@@ -218,7 +220,7 @@ class BIMsie {
 				$project = BIMsie::getProject( $uri, $poid, $userId );
 				if( $project ) {
 					$bimsieCache = BIMsie::getCacheByUri( $uri, $userId );
-					if( $server[ 'remember' ] == 1 ) {
+					if( isset( $server[ 'token' ] ) && isset( $server[ 'tokenValid' ] ) && $server[ 'tokenValid' ] > time() ) {
 						$revisions = BIMsie::request( $server[ 'uri' ], $server[ 'token' ], 'Bimsie1ServiceInterface', 'getAllRevisionsOfProject', Array( 'poid' => $poid ) );
 						$error = BIMsie::getErrorMessage( $revisions );
 						if( $error === false && isset( $revisions ) && isset( $revisions->response ) && isset( $revisions->response->result ) ) {
@@ -248,7 +250,7 @@ class BIMsie {
 				return $bimsieCache[ 'projects' ][$poid]->revisions[$roid];
 			} else {
 				if( !isset( $bimsieCache[ 'projects' ][$poid]->revisions ) || !isset( $bimsieCache[ 'projects' ][$poid]->revisions[$roid] ) ) {
-					if( $server[ 'remember' ] == 1 ) {
+					if( isset( $server[ 'token' ] ) && isset( $server[ 'tokenValid' ] ) && $server[ 'tokenValid' ] > time() ) {
 						$revisions = BIMsie::request( $server[ 'uri' ], $server[ 'token' ], 'Bimsie1ServiceInterface', 'getAllRevisionsOfProject', Array( 'poid' => $poid ) );
 						$error = BIMsie::getErrorMessage( $revisions );
 						if( $error === false && isset( $revisions ) && isset( $revisions->response ) && isset( $revisions->response->result ) ) {
@@ -340,8 +342,30 @@ class BIMsie {
 		$servers = BIMsie::getServers( false, $userId );
 		$foundServer = false;
 		foreach( $servers as $server ) {
+			$oldServer = $server;
 			if( $server[ 'uri' ] == $uri ) {
 				$foundServer = $server;
+				if( $foundServer[ 'remember' ] == 0 ) {
+					if( isset( $_POST[ 'username' ] ) && isset( $_POST[ 'password' ] ) ) {
+						$foundServer[ 'username' ] = $_POST[ 'username' ];
+						$foundServer[ 'password' ] = $_POST[ 'password' ];
+					}
+					if( isset( $_POST[ 'remember' ] ) && $_POST[ 'remember' ] != '' ) {
+						$foundServer[ 'remember' ] = 1;
+					}
+				}
+				if( $foundServer[ 'remember' ] == 0 || !isset( $foundServer[ 'token' ] ) || $foundServer[ 'tokenValid' ] < time() ) {
+					$token = BIMsie::publicRequest( $foundServer[ 'uri' ], 'Bimsie1AuthInterface', 'login', 
+							Array( 'username' => isset( $foundServer[ 'username' ] ) ? $foundServer[ 'username' ] : '', 'password' => isset( $foundServer[ 'password' ] ) ? $foundServer[ 'password' ] : '' ) );
+					if( isset( $token ) && isset( $token->response ) && isset( $token->response->result ) && BIMsie::getErrorMessage( $token ) === false ) {
+						$token = $token->response->result;
+						$foundServer[ 'token' ] = $token;
+						$foundServer[ 'tokenValid' ] = time() + BIMsie::$tokenTimeout;
+						if( $foundServer[ 'remember' ] == 1 ) {
+							update_user_meta( get_current_user_id(), 'BIMsie-servers', $foundServer, $oldServer );
+						}
+					}					
+				}
 				break;
 			}
 		}

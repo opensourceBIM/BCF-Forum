@@ -84,3 +84,7 @@ body {
 #add-issue-form .sub-element label {
 	width: 180px;
 } 
+
+.issue-table .even {
+	background-color: #efefef;
+}

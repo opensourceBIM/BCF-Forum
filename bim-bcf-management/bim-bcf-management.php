@@ -143,14 +143,93 @@ class BIMBCFManagement {
 			if( ( isset( $_GET[ 'bimsie' ] ) && $_GET[ 'bimsie' ] != '' ) || ( isset( $_POST[ 'bimsie' ] ) && $_POST[ 'bimsie' ] != '' ) ) {
 				// Show issues belonging to projects on this server
 				if( isset( $_GET[ 'bimsie' ] ) && $_GET[ 'bimsie' ] != '' ) {
-					// TODO: validate bimsie url
-
+					$server = htmlentities( $_GET[ 'bimsie' ], ENT_QUOTES, get_bloginfo( 'charset' ) );
+					$projects = BIMsie::getProjects( $_GET[ 'bimsie' ] );
 				} else {
-					// TODO: Add new bimsie server, store credentials or just use server with temporary credentials
-
+					// Add new bimsie server, store credentials or just use server with temporary credentials
+					$server = htmlentities( $_POST[ 'bimsie' ], ENT_QUOTES, get_bloginfo( 'charset' ) );
+					$projects = BIMsie::getProjects( $_POST[ 'bimsie' ] );
+				}
+			}
+			
+			if( isset( $projects ) && $projects !== false ) {
+				$options = BIMBCFManagement::getOptions();
+				$projects = BIMsie::getHierarchicalProjects( $projects );
+?>
+				<h3><?php _e( 'Bimsie server', 'bim-bcf-management' ); ?>: <?php print( $server ); ?></h3>
+<?php
+				foreach( $projects as $project ) {
+					
+					$myIssues = get_posts( Array(
+							'posts_per_page' => -1,
+							'post_type' => $options[ 'bcf_issue_post_type' ],
+							'post_status' => 'publish',
+							'orderby' => 'date',
+							'order' => 'DESC',
+							'meta_query' => Array(
+									Array(
+											'key' => 'import_status',
+											'value' => 'complete'
+									),
+									Array(
+											'key' => 'poid',
+											'value' => $project->oid 
+									)
+							)
+					) );
+?>
+					<h4><?php print( $project->name ); ?></h4>
+<?php
+					if( count( $myIssues ) > 0 ) { 
+?>					
+					<table class="issue-table">
+						<tr>
+							<th>&nbsp;</th>
+							<th><?php _e( 'Issue', 'bim-bcf-management' ); ?></th>
+							<th><?php _e( 'Date', 'bim-bcf-management' ); ?></th>
+							<th><?php _e( 'Revision', 'bim-bcf-management' ); ?></th>
+						</tr>
+<?php
+						$index = 0;
+						foreach( $myIssues as $issue ) {
+							$roids = get_post_meta( $issue->ID, 'roid' );
+							$poids = get_post_meta( $issue->ID, 'poid' );
+							$revisionInformation = '';
+							foreach( $poids as $key => $poid ) {
+								if( $poid == $project->oid ) {
+									if( isset( $roids[$key] ) ) {
+										$revision = BIMsie::getRevision( $server, $project->oid , $roids[$key] );
+										if( $revision ) {
+											$revisionInformation = $revision->name;
+										} else {
+											$revisionInformation = '-';
+										}
+									}
+									break;
+								}
+							}
+							$timestamp = strtotime( $issue->post_date );
+?>
+						<tr class="<?php print( $index % 2 == 0 ? 'even' : 'odd' ); ?>">
+							<td><?php print( get_the_post_thumbnail( $issue->ID, 'issue-list-thumb' ) ); ?></td>
+							<td><a href="<?php print( get_bloginfo( 'wpurl' ) . $options[ 'issue_details_uri' ] . '?id=' . $issue->ID );  ?>"><?php print( $issue->post_title ); ?></a></<td>
+							<td><?php print( date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp ) ); ?></<td>
+							<td><?php print( $revisionInformation ); ?></td>
+						</tr>
+<?php
+							$index ++;
+						}
+?>
+					</table>
+<?php
+					} else {
+?>
+					<p><?php _e( 'No issues for this project', 'bim-bcf-management' ); ?></p>					
+<?php
+					}
 				}
 			} else {
-				// Show bimsie
+				// Show stored bimsie servers
 				$bimsieServers = BIMsie::getServers();
 				foreach( $bimsieServers as $key => $bimsieServer ) {
 ?>
@@ -162,8 +241,8 @@ class BIMBCFManagement {
 					if( !isset( $bimsieServer[ 'remember' ] ) || $bimsieServer[ 'remember' ] == 0 ) {
 ?>
 					<input type="checkbox" name="remember" value="1" id="remember-<?php print( $key ); ?>" /> <label for="remember-<?php print( $key ); ?>"><?php _e( 'Remember me', 'bim-bcf-management' ); ?></label><br />
-					<label for="username-<?php print( $key ); ?>"><?php _e( 'Username', 'bim-bcf-management' ); ?></label> <input type="text" id="username-<?php print( $key ); ?>" placeholder="<?php _e( 'Username', 'bim-bcf-management' ); ?>" value="" /><br />
-					<label for="password-<?php print( $key ); ?>"><?php _e( 'Password', 'bim-bcf-management' ); ?></label> <input type="password" id="password-<?php print( $key ); ?>" placeholder="<?php _e( 'Password', 'bim-bcf-management' ); ?>" value="" /><br />
+					<label for="username-<?php print( $key ); ?>"><?php _e( 'Username', 'bim-bcf-management' ); ?></label> <input type="text" id="username-<?php print( $key ); ?>" name="username" placeholder="<?php _e( 'Username', 'bim-bcf-management' ); ?>" value="" /><br />
+					<label for="password-<?php print( $key ); ?>"><?php _e( 'Password', 'bim-bcf-management' ); ?></label> <input type="password" id="password-<?php print( $key ); ?>" name="password" placeholder="<?php _e( 'Password', 'bim-bcf-management' ); ?>" value="" /><br />
 <?php
 					}
 ?>
@@ -185,8 +264,87 @@ class BIMBCFManagement {
 	public static function showMyIssues() {
 		if( is_user_logged_in() ) {
 			//print( "showIssues()<br />" );
+			global $current_user;
+			get_currentuserinfo();
 			$options = BIMBCFManagement::getOptions();
-			$myIssues = get_posts( Array(
+			$shownIssues = Array();
+			$assignedIssues = get_posts( Array(
+					'posts_per_page' => -1,
+					'post_type' => $options[ 'bcf_issue_post_type' ],
+					'post_status' => 'publish',
+					'orderby' => 'date',
+					'order' => 'DESC',
+					'meta_query' => Array(
+							Array(
+									'key' => 'import_status',
+									'value' => 'complete'
+							),
+							Array(
+									'key' => 'assigned_to',
+									'value' => $current_user->user_email
+							)
+					)
+			) );
+?>
+		<h3><?php _e( 'Assigned to me', 'bim-bcf-management' ); ?></h3>
+<?php
+			if( count( $assignedIssues ) > 0 ) {
+				$index = 0;
+?>
+		<table class="issue-table">
+			<tr>
+				<th>&nbsp;</th>
+				<th><?php _e( 'Issue', 'bim-bcf-management' ); ?></th>
+				<th><?php _e( 'Date', 'bim-bcf-management' ); ?></th>
+				<th><?php _e( 'Bimsie server', 'bim-bcf-management' ); ?></th>
+				<th><?php _e( 'Project/Revision', 'bim-bcf-management' ); ?></th>
+			</tr>
+<?php
+				foreach( $assignedIssues as $issue ) {
+					$shownIssues[] = $issue->ID;
+					$bimsieServer = get_post_meta( $issue->ID, '_bimsie_uri', true );
+					$poids = get_post_meta( $issue->ID, 'poid' );
+					$roids = get_post_meta( $issue->ID, 'roid' );
+					$projects = Array();
+					foreach( $poids as $key => $poid ) {
+						$project = BIMsie::getProject( $bimsieServer, $poid );
+						$roid = isset( $roids[$key] ) ? $roids[$key] : '';
+						if( $project && $roid != '' ) {
+							$revision = BIMsie::getRevision( $bimsieServer, $poid, $roid );
+							$projects[] = Array( $project->name, $revision? $revision->name : $roid );
+						} elseif( $project ) {
+							$projects[] = Array( $project->name, '' );
+						} else {
+							$projects[] = Array( $poid, $roid );
+						}
+					}					
+					$timestamp = strtotime( $issue->post_date );
+?>
+			<tr class="<?php print( $index % 2 == 0 ? 'even' : 'odd' ); ?>">
+				<td><?php print( get_the_post_thumbnail( $issue->ID, 'issue-list-thumb' ) ); ?></td>
+				<td><a href="<?php print( get_bloginfo( 'wpurl' ) . $options[ 'issue_details_uri' ] . '?id=' . $issue->ID );  ?>"><?php print( $issue->post_title ); ?></a></<td>
+				<td><?php print( date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp ) ); ?></<td>
+				<td><?php print( $bimsieServer == '' ? '-' : $bimsieServer ); ?></<td>
+				<td>
+<?php 
+					foreach( $projects as $project ) {
+						print( $project[0] . ': ' . $project[1] . '<br />' );
+					}
+?>
+				</<td>
+			</tr>
+<?php
+					$index ++;
+				}
+?>
+		</table>
+<?php
+			} else {
+?>
+		<p><?php _e( 'No issues assigned to you', 'bim-bcf-management' ); ?></p>
+<?php
+			}						
+			$myUnfilteredIssues = get_posts( Array(
 					'posts_per_page' => -1,
 					'post_type' => $options[ 'bcf_issue_post_type' ],
 					'post_status' => 'publish',
@@ -200,6 +358,17 @@ class BIMBCFManagement {
 							)
 					)
 			) );
+			// TODO: maybe better to show double issues here?
+			$myIssues = Array();
+			foreach( $myUnfilteredIssues as $issue ) {
+				if( !in_array( $issue->ID, $shownIssues ) ) {
+					$myIssues[] = $issue;
+				}
+			}
+			
+?>
+		<h3><?php _e( 'Added by me', 'bim-bcf-management' ); ?></h3>
+<?php
 			if( count( $myIssues ) > 0 ) {
 				$index = 0;
 ?>
@@ -264,7 +433,8 @@ class BIMBCFManagement {
 
 	public static function showIssue() {
 		if( is_user_logged_in() ) {
-			global $post;
+			global $post, $current_user;
+			get_currentuserinfo();
 			$issueId = ( isset( $_GET[ 'id' ] ) && ctype_digit( $_GET[ 'id' ] ) ) ? $_GET[ 'id' ] : -1;
 			if( $issueId == -1 && isset( $post ) && isset( $post->ID ) ) {
 				// if no id is supplied we assume the current post is the issue we want to display
@@ -288,11 +458,28 @@ class BIMBCFManagement {
 				$currentUserId = get_current_user_id();
 				$issue = get_post( $issueId );
 				$assignedTo = get_post_meta( $issue->ID, 'assigned_to', true );
+				$authorized = false;
+				// check if user has access to this post
+				if( $issue->post_author == $currentUserId || $current_user->user_email == $assignedTo ) {
+					$authorized = true;
+				}
 				$uri = get_post_meta( $issue->ID, '_bimsie_uri', true );
-				// TODO: check if user has access to this post
-				if( $issue->post_author == $currentUserId && $issue->post_type == $options[ 'bcf_issue_post_type' ] ) {
-					$poids = get_post_meta( $issue->ID, 'poid' );
+				$poids = get_post_meta( $issue->ID, 'poid' );
+				// We have not published this issue and it is not assigned to us
+				// Check if we have access to at least one of its project(s)
+				if( !$authorized ) {
+					foreach( $poids as $poid ) {
+						$project = BIMsie::getProject( $uri, $poid );
+						if( $project ) {
+							$authorized = true;
+							break;
+						}
+					}
+				}
+				if( $issue->post_type == $options[ 'bcf_issue_post_type' ] && $authorized ) {
 					$roids = get_post_meta( $issue->ID, 'roid' );
+					$guid = get_post_meta( $issue->ID, 'guid', true );
+					$markup = get_post_meta( $issue->ID, 'markup', true );
 					$projects = Array();
 					foreach( $poids as $key => $poid ) {
 						$project = BIMsie::getProject( $uri, $poid );
@@ -316,21 +503,60 @@ class BIMBCFManagement {
 					<td><?php _e( 'Date', 'bim-bcf-management' ); ?></td>
 					<td><?php print( date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp ) ); ?></td>
 				</tr>
-			</table>
-			<h4><?php _e( 'Issue projects and revisions', 'bim-bcf-management' ); ?></h4>
-			<table class="issue-table">
 				<tr>
-					<th><?php _e( 'Project' ); ?></th>
-					<th><?php _e( 'Revision' ); ?></th>
+					<td><?php _e( 'Guid', 'bim-bcf-management' ); ?></td>
+					<td><?php print( $guid ); ?></td>
+				</tr>				
+				<tr>
+					<td><?php _e( 'Assigned to', 'bim-bcf-management' ); ?></td>
+					<td><?php print( $assignedTo ); ?></td>
 				</tr>
 <?php 
-					foreach( $projects as $project ) {
+					if( isset( $markup[ 'Topic' ] ) ) {
 ?>
 				<tr>
-					<th><?php print( $project[0] ); ?></th>
-					<th><?php print( $project[1] ); ?></th>
+					<td><?php _e( 'Label', 'bim-bcf-management' ); ?></td>
+					<td><?php print( isset( $markup[ 'Topic' ][ 'Label' ] ) ? $markup[ 'Topic' ][ 'Label' ] : '' ); ?></td>
+				</tr>
+				<!--tr>
+					<td><?php _e( 'Creation Date', 'bim-bcf-management' ); ?></td>
+					<td><?php print( isset( $markup[ 'Topic' ][ 'CreationDate' ] ) ? $markup[ 'Topic' ][ 'CreationDate' ] : '' ); ?></td>
+				</tr>
+				<tr>
+					<td><?php _e( 'Modified Date', 'bim-bcf-management' ); ?></td>
+					<td><?php print( isset( $markup[ 'Topic' ][ 'ModifiedDate' ] ) ? $markup[ 'Topic' ][ 'ModifiedDate' ] : '' ); ?></td>
+				</tr-->
+<?php
+						if( isset( $markup[ 'Topic' ][ '@attributes' ] ) ) {
+?>
+				<tr>
+					<td><?php _e( 'Topic Type', 'bim-bcf-management' ); ?></td>
+					<td><?php print( isset( $markup[ 'Topic' ][ '@attributes' ][ 'TopicType' ] ) ? $markup[ 'Topic' ][ '@attributes' ][ 'TopicType' ] : '' ); ?></td>
+				</tr>
+				<tr>
+					<td><?php _e( 'Topic Status', 'bim-bcf-management' ); ?></td>
+					<td><?php print( isset( $markup[ 'Topic' ][ '@attributes' ][ 'TopicStatus' ] ) ? $markup[ 'Topic' ][ '@attributes' ][ 'TopicStatus' ] : '' ); ?></td>
+				</tr>
+<?php							
+						}
+					}
+?>
+			</table>
+			<table class="issue-table">
+				<tr>
+					<th><?php _e( 'Project', 'bim-bcf-management' ); ?></th>
+					<th><?php _e( 'Revision', 'bim-bcf-management' ); ?></th>
+				</tr>
+<?php 
+					$count = 0;
+					foreach( $projects as $project ) {
+?>
+				<tr class="<?php print( $count % 2 == 0 ? 'even' : 'odd' ); ?>">
+					<td><?php print( $project[0] ); ?></td>
+					<td><?php print( $project[1] ); ?></td>
 				</tr>
 <?php
+						$count ++;
 					}
 ?>				
 			</table>
@@ -551,7 +777,7 @@ class BIMBCFManagement {
 		$guid = '';
 		$markup = Array();
 		$project = false;
-		$viewpoints = Array();
+		$visualizationInfo = Array();
 		$snapshots = Array();
 
 		foreach( $files as $file ) {
@@ -567,7 +793,7 @@ class BIMBCFManagement {
 			} elseif( substr( $file[1], -5 ) == '.bcfv' ) {
 				// extract the XML from viewpoint
 				$xml = simplexml_load_string( $file[2] );
-				$viewpoints[] = BIMBCFManagement::convertSimpleXML2Array( $xml );
+				$visualizationInfo[] = BIMBCFManagement::convertSimpleXML2Array( $xml );
 			} elseif( $file[1] == 'project.bcfp' ) {
 				// extract the XML from the project file
 				$xml = simplexml_load_string( $file[2] );
@@ -625,8 +851,12 @@ class BIMBCFManagement {
 
 			// Store XML stuff in post meta
 			add_post_meta( $postId, 'markup', $markup, true );
+			
+			if( isset( $markup[ 'Topic' ] ) && isset( $markup[ 'Topic' ][ 'AssignedTo' ] ) ) {
+				add_post_meta( $postId, 'assigned_to', $markup[ 'Topic' ][ 'AssignedTo' ] );
+			}
 
-			// Set some information for easier access/filtering
+			// TODO: this only works for BCF 1.0 
 			if( isset( $markup[ 'Comment' ] ) ) {
 				if( isset( $markup[ 'Comment' ][ 'VerbalStatus' ] ) ) {
 					add_post_meta( $postId, 'VerbalStatus', $markup[ 'Comment' ][ 'VerbalStatus' ], true );
@@ -641,9 +871,7 @@ class BIMBCFManagement {
 					add_post_meta( $postId, 'Comment', $markup[ 'Comment' ][ 'Comment' ], true );
 				}
 			}
-			foreach( $viewpoints as $viewpoint ) {
-				add_post_meta( $postId, 'visualizationinfo', $viewpoint, false );
-			}
+			add_post_meta( $postId, 'visualizationinfo', $visualizationInfo );
 
 			// TODO: Could set some more values to filter on for this issue
 
@@ -687,6 +915,9 @@ class BIMBCFManagement {
 				add_post_meta( $postId, 'import_status', 'complete', true );
 				add_post_meta( $postId, 'markup', $jsonIssue[ 'markup' ], false );
 				add_post_meta( $postId, 'visualizationinfo', $jsonIssue[ 'visualizationinfo' ], false );
+				if( isset( $jsonIssue[ 'markup' ][ 'Topic' ][ 'AssignedTo' ] ) ) {
+					add_post_meta( $postId, 'assigned_to', $jsonIssue[ 'markup' ][ 'Topic' ][ 'AssignedTo' ] );
+				}
 				if( isset( $jsonIssue[ 'markup' ][ 'Header' ] ) && isset( $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ] ) && is_array( $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ] ) ) {
 					foreach( $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ] as $key => $file ) {
 						if( isset( $file[ 'project' ] ) ) {
