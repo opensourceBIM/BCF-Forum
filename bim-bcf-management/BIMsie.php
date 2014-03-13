@@ -328,6 +328,21 @@ class BIMsie {
 			return $bimsieServers;
 		}
 	}
+	
+	public static function forgetServer( $uri, $userId = -1 ) {
+		$servers = BIMsie::getServers( false, $userId );
+		$remainingServers = Array();
+		foreach( $servers as $server ) {
+			if( $server[ 'uri' ] != $uri ) {
+				$remainingServers[] = $server;
+			}
+		}
+		$userId = $userId == -1 ? get_current_user_id() : $userId;
+		delete_user_meta( $userId, 'bimsie-servers' );
+		foreach( $remainingServers as $server ) {
+			add_user_meta( $userId, 'bimsie-servers', $server );
+		}
+	}
 
 	public static function getServerById( $serverId, $userId = -1 ) {
 		$servers = BIMsie::getServers( false, $userId );
@@ -362,7 +377,7 @@ class BIMsie {
 						$foundServer[ 'token' ] = $token;
 						$foundServer[ 'tokenValid' ] = time() + BIMsie::$tokenTimeout;
 						if( $foundServer[ 'remember' ] == 1 ) {
-							update_user_meta( get_current_user_id(), 'BIMsie-servers', $foundServer, $oldServer );
+							update_user_meta( $userId == -1 ? get_current_user_id() : $userId, 'bimsie-servers', $foundServer, $oldServer );
 						}
 					}					
 				}
@@ -373,7 +388,7 @@ class BIMsie {
 	}
 		
 	public static function updateServer( $uri, $username, $password, $remember, $userId = -1 ) {
-		$servers = BIMsie::getBimsieServers( false, $userId );
+		$servers = BIMsie::getServers( false, $userId );
 		$found = false;
 		foreach( $servers as $key => $server ) {
 			if( $server[ 'uri' ] == $uri ) {
@@ -387,17 +402,20 @@ class BIMsie {
 				break;
 			}
 		}
+		$userId = $userId == -1 ? get_current_user_id() : $userId;
 		if( !$found ) {
 			$serverId = count( $servers );
 			if( $remember == 1 ) {
-				add_user_meta( get_current_user_id(), 'BIMsie-servers', Array( 'uri' => $uri, 'remember' => 1, 'username' => $username, 'password' => $password ) );
+				$server = Array( 'uri' => $uri, 'remember' => 1, 'username' => $username, 'password' => $password );
 			} else {
-				add_user_meta( get_current_user_id(), 'BIMsie-servers', Array( 'uri' => $uri, 'remember' => 0 ) );
+				$server = Array( 'uri' => $uri, 'remember' => 0 );
 			}
+			add_user_meta( $userId, 'bimsie-servers', $server );
+			$servers[$serverId] = $server;
 		} else {
-			delete_user_meta( get_current_user_id(), 'BIMsie-servers' );
+			delete_user_meta( $userId, 'bimsie-servers' );
 			foreach( $servers as $server ) {
-				add_user_meta( get_current_user_id(), 'BIMsie-servers', $server );
+				add_user_meta( $userId, 'bimsie-servers', $server );
 			}
 		}
 		return $servers[$serverId];

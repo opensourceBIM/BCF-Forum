@@ -76,9 +76,10 @@ body {
 }
 
 #add-issue-form .sub-element {
-	border: 1px solid #dedede;
+	border: 1px solid #efefef;
 	padding: 5px;
 	margin: 5px;
+	border-radius: 3px;
 }
 
 #add-issue-form .sub-element label {
@@ -87,4 +88,22 @@ body {
 
 .issue-table .even {
 	background-color: #efefef;
+}
+
+.bimsie-server-link {
+	position: relative;
+	border: 1px solid #efefef;
+	padding: 5px 10px;
+	margin-bottom: 10px;
+	border-radius: 3px;
+}
+
+.forget-bimserver {
+	position: absolute;
+	right: 10px;
+	bottom: 5px;
+	width: 120px;
+	height: 50px;
+	line-height: 50px;
+	text-align: right;
 }

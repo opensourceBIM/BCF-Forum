@@ -145,8 +145,19 @@ class BIMBCFManagement {
 				if( isset( $_GET[ 'bimsie' ] ) && $_GET[ 'bimsie' ] != '' ) {
 					$server = htmlentities( $_GET[ 'bimsie' ], ENT_QUOTES, get_bloginfo( 'charset' ) );
 					$projects = BIMsie::getProjects( $_GET[ 'bimsie' ] );
+				} elseif( isset( $_POST[ 'new' ] ) ) {
+					// Add new bimserver
+					if( isset( $_POST[ 'bimsie' ] ) && isset( $_POST[ 'username' ] ) && isset( $_POST[ 'password' ] ) ) {
+						BIMsie::updateServer( $_POST[ 'bimsie' ], $_POST[ 'username' ], $_POST[ 'password' ], isset( $_POST[ 'remember' ] ) && $_POST[ 'remember' ] == '1' ? 1 : 0 );
+					}
+					$server = htmlentities( $_POST[ 'bimsie' ], ENT_QUOTES, get_bloginfo( 'charset' ) );
+					$projects = BIMsie::getProjects( $_POST[ 'bimsie' ] );
+				} elseif( isset( $_POST[ 'forget' ] ) ) {
+					if( isset( $_POST[ 'bimsie' ] ) ) {
+						BIMsie::forgetServer( $_POST[ 'bimsie' ] );
+					}
 				} else {
-					// Add new bimsie server, store credentials or just use server with temporary credentials
+					// Store credentials or just use server with temporary credentials
 					$server = htmlentities( $_POST[ 'bimsie' ], ENT_QUOTES, get_bloginfo( 'charset' ) );
 					$projects = BIMsie::getProjects( $_POST[ 'bimsie' ] );
 				}
@@ -248,11 +259,27 @@ class BIMBCFManagement {
 ?>
 					<input type="submit" value="<?php _e( 'View', 'bim-bcf-management' ); ?>" />
 				</form>
-				<a href="?bimsie=<?php print( urlencode( $bimsieServer[ 'uri' ] ) ); ?>"></a><br />
+				<div class="forget-bimserver">
+					<form method="post" action="">
+						<input type="hidden" name="bimsie" value="<?php print( $bimsieServer[ 'uri' ] ); ?>" />
+						<input type="submit" name="forget" value="<?php _e( 'Forget', 'bim-bcf-management' ); ?>" onclick="return confirm( '<?php _e( 'Are you sure you want the site to forget this bim servers information?', 'bim-bcf-management' ); ?>' );" />
+					</form>
+				</div>
 			</div>
 <?php
 				}
-				// TODO: add new server form
+?>
+			<div class="bimsie-server-link">
+				<form method="post" action="">
+					<h3><?php _e( 'Add bimserver', 'bim-bcf-management' ); ?></h3>
+					<label for="bimsie-new"><?php _e( 'Bimserver', 'bim-bcf-management' ); ?></label> <input id="" type="text" name="bimsie" placeholder="<?php _e( 'Bimserver', 'bim-bcf-management' ); ?>" value="" /><br />
+					<input type="checkbox" name="remember" value="1" id="remember-new" /> <label for="remember-new"><?php _e( 'Remember me', 'bim-bcf-management' ); ?></label><br />
+					<label for="username-new"><?php _e( 'Username', 'bim-bcf-management' ); ?></label> <input type="text" id="username-new" name="username" placeholder="<?php _e( 'Username', 'bim-bcf-management' ); ?>" value="" /><br />
+					<label for="password-new"><?php _e( 'Password', 'bim-bcf-management' ); ?></label> <input type="password" id="password-new" name="password" placeholder="<?php _e( 'Password', 'bim-bcf-management' ); ?>" value="" /><br />
+					<input type="submit" name="new" value="<?php _e( 'Add and view', 'bim-bcf-management' ); ?>" />
+				</form>
+			</div>				
+<?php				
 			}
 		} else {
 ?>
@@ -296,8 +323,8 @@ class BIMBCFManagement {
 				<th>&nbsp;</th>
 				<th><?php _e( 'Issue', 'bim-bcf-management' ); ?></th>
 				<th><?php _e( 'Date', 'bim-bcf-management' ); ?></th>
-				<th><?php _e( 'Bimsie server', 'bim-bcf-management' ); ?></th>
-				<th><?php _e( 'Project/Revision', 'bim-bcf-management' ); ?></th>
+				<!--th><?php _e( 'Bimsie server', 'bim-bcf-management' ); ?></th>
+				<th><?php _e( 'Project/Revision', 'bim-bcf-management' ); ?></th-->
 			</tr>
 <?php
 				foreach( $assignedIssues as $issue ) {
@@ -324,14 +351,14 @@ class BIMBCFManagement {
 				<td><?php print( get_the_post_thumbnail( $issue->ID, 'issue-list-thumb' ) ); ?></td>
 				<td><a href="<?php print( get_bloginfo( 'wpurl' ) . $options[ 'issue_details_uri' ] . '?id=' . $issue->ID );  ?>"><?php print( $issue->post_title ); ?></a></<td>
 				<td><?php print( date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp ) ); ?></<td>
-				<td><?php print( $bimsieServer == '' ? '-' : $bimsieServer ); ?></<td>
+				<!--td><?php print( $bimsieServer == '' ? '-' : $bimsieServer ); ?></<td>
 				<td>
 <?php
 					foreach( $projects as $project ) {
 						print( $project[0] . ': ' . $project[1] . '<br />' );
 					}
 ?>
-				</<td>
+				</td-->
 			</tr>
 <?php
 					$index ++;
@@ -377,8 +404,8 @@ class BIMBCFManagement {
 					<th>&nbsp;</th>
 					<th><?php _e( 'Issue', 'bim-bcf-management' ); ?></th>
 					<th><?php _e( 'Date', 'bim-bcf-management' ); ?></th>
-					<th><?php _e( 'Bimsie server', 'bim-bcf-management' ); ?></th>
-					<th><?php _e( 'Project/Revision', 'bim-bcf-management' ); ?></th>
+					<!--th><?php _e( 'Bimsie server', 'bim-bcf-management' ); ?></th>
+					<th><?php _e( 'Project/Revision', 'bim-bcf-management' ); ?></th-->
 				</tr>
 <?php
 				foreach( $myIssues as $issue ) {
@@ -404,14 +431,14 @@ class BIMBCFManagement {
 					<td><?php print( get_the_post_thumbnail( $issue->ID, 'issue-list-thumb' ) ); ?></td>
 					<td><a href="<?php print( get_bloginfo( 'wpurl' ) . $options[ 'issue_details_uri' ] . '?id=' . $issue->ID );  ?>"><?php print( $issue->post_title ); ?></a></<td>
 					<td><?php print( date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp ) ); ?></<td>
-					<td><?php print( $bimsieServer == '' ? '-' : $bimsieServer ); ?></<td>
+					<!--td><?php print( $bimsieServer == '' ? '-' : $bimsieServer ); ?></<td>
 					<td>
 <?php
 					foreach( $projects as $project ) {
 						print( $project[0] . ': ' . $project[1] . '<br />' );
 					}
 ?>
-					</<td>
+					</td-->
 				</tr>
 <?php
 					$index ++;
@@ -774,6 +801,7 @@ class BIMBCFManagement {
 
 
 	private static function addIssueFromZip( $files ) {
+		global $wpdb;
 		$guid = '';
 		$markup = Array();
 		$project = false;
@@ -806,78 +834,53 @@ class BIMBCFManagement {
 		}
 		// Create a post with information from the XML issue
 		$options = BIMBCFManagement::getOptions();
-		$currentUserId = get_current_user_id();
-
-		$postData = Array(
-				'post_title' => wp_strip_all_tags( $guid ),
-				'post_content' => '',
-				'post_type' => $options[ 'bcf_issue_post_type' ],
-				'post_status' => 'publish',
-				'post_author' => $currentUserId
-			);
-		if( isset( $markup[ 'Comment' ] ) && isset( $markup[ 'Comment' ][ 'Date' ] ) ) {
-			$date = strtotime( $markup[ 'Comment' ][ 'Date' ] );
-			$postData[ 'post_date' ] = date( 'Y-m-d H:i:s', $date );
+		
+		$jsonIssue = Array( 'markup' => $markup, 'visualizationinfo' => $visualizationInfo );
+		if( $project !== false ) {
+			$jsonIssue[ 'projectextension' ] = $project;
 		}
-		$postId = wp_insert_post( $postData );
-		if( $postId > 0 ) {
-			// Set post meta so we know this issue has yet to be attached to a project/revision
-			add_post_meta( $postId, 'import_status', 'pending', true );
-
-			// Add snapshots as attachments (first one is the thumbnail!)
-			$snapshotIds = Array();
-			$first = true;
-			foreach( $snapshots as $snapshot ) {
-				$id = BIMBCFManagement::writeSnapshot( $postId, $snapshot, $first );
-				if( $id !== false ) {
-					$snapshotIds[] = Array( 'id' => $id, 'file' => $snapshot[0] );
-				}
-				if( $first ) {
-					$first = false;
-				}
+		if( !isset( $jsonIssue[ 'markup' ][ 'Topic' ] ) ) {
+			$jsonIssue[ 'markup' ][ 'Topic' ] = Array();
+		}
+		if( !isset( $jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ] ) ) {
+			$jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ] = Array();
+		}
+		if( !isset( $jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ][ 'Guid' ] ) ) {
+			$jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ][ 'Guid' ] = $guid;
+		}
+		
+		// Import images as WordPress attachments
+		$snapshotIds = Array();
+		foreach( $snapshots as $snapshot ) {
+			$id = BIMBCFManagement::writeSnapshot( $snapshot );
+			if( $id !== false ) {
+				$snapshotIds[] = Array( 'id' => $id, 'file' => $snapshot[0] );
 			}
-
-			// TODO: some data processing to set things right!
-			if( isset( $markup[ 'Viewpoints' ] ) && is_array( $markup[ 'Viewpoints' ] ) ) {
-				foreach( $markup[ 'Viewpoints' ] as &$viewpoint ) {
-					foreach( $snapshotIds as $snapshot ) {
-						if( $snapshot[ 'file'] == $viewpoint[ 'Snapshot' ] ) { // TODO: might need some more validation, not sure how Snapshot string will be filled
-							$viewpoint[ 'Snapshot' ] = wp_get_attachment_url( $snapshot[ 'id' ] );
-							break 1;
-						}
+		}
+			
+		// Put snapshot urls in instead of file references
+		if( isset( $markup[ 'Viewpoints' ] ) && is_array( $markup[ 'Viewpoints' ] ) ) {
+			foreach( $markup[ 'Viewpoints' ] as &$viewpoint ) {
+				foreach( $snapshotIds as $snapshot ) {
+					if( $snapshot[ 'file'] == $viewpoint[ 'Snapshot' ] ) {
+						$viewpoint[ 'Snapshot' ] = wp_get_attachment_url( $snapshot[ 'id' ] );
+						break 1;
 					}
 				}
 			}
-
-			// Store XML stuff in post meta
-			add_post_meta( $postId, 'markup', $markup, true );
-
-			if( isset( $markup[ 'Topic' ] ) && isset( $markup[ 'Topic' ][ 'AssignedTo' ] ) ) {
-				add_post_meta( $postId, 'assigned_to', $markup[ 'Topic' ][ 'AssignedTo' ] );
-			}
-
-			// TODO: this only works for BCF 1.0
-			if( isset( $markup[ 'Comment' ] ) ) {
-				if( isset( $markup[ 'Comment' ][ 'VerbalStatus' ] ) ) {
-					add_post_meta( $postId, 'VerbalStatus', $markup[ 'Comment' ][ 'VerbalStatus' ], true );
+		}
+		
+		$postId = BIMBCFManagement::addIssue( $jsonIssue );
+		if( $postId !== false ) {
+			$first = true;
+			foreach( $snapshotIds as $snapshot ) {
+				$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->posts}
+					SET post_parent = %d
+					WHERE ID = %d", $postId, $snapshot[ 'id' ] ) );
+				if( $first ) {
+					set_post_thumbnail( $postId, $snapshot[ 'id' ] );
+					$first = false;
 				}
-				if( isset( $markup[ 'Comment' ][ 'Status' ] ) ) {
-					add_post_meta( $postId, 'Status', $markup[ 'Comment' ][ 'Status' ], true );
-				}
-				if( isset( $markup[ 'Comment' ][ 'Author' ] ) ) {
-					add_post_meta( $postId, 'Author', $markup[ 'Comment' ][ 'Author' ], true );
-				}
-				if( isset( $markup[ 'Comment' ][ 'Comment' ] ) ) {
-					add_post_meta( $postId, 'Comment', $markup[ 'Comment' ][ 'Comment' ], true );
-				}
-			}
-			add_post_meta( $postId, 'visualizationinfo', $visualizationInfo );
-
-			// TODO: Could set some more values to filter on for this issue
-
-			// If a project is set, add it as post meta
-			if( $project !== false ) {
-				add_post_meta( $postId, 'projectextension', $project );
 			}
 			return true;
 		} else {
@@ -893,7 +896,7 @@ class BIMBCFManagement {
 
 		if( isset( $jsonIssue ) && isset( $jsonIssue[ 'markup' ] ) && isset( $jsonIssue[ 'visualizationinfo' ] ) && isset( $jsonIssue[ 'markup' ][ 'Topic' ] ) ) {
 			// place information in special fields for faster access
-			if( !isset( $jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ] ) || !isset( $jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ][ 'Guid' ] ) ) {
+			if( !isset( $jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ] ) || !isset( $jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ][ 'Guid' ] ) || $jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ][ 'Guid' ] == '' ) {
 				$guid = BIMBCFManagement::getRandomGuid();
 				if( !isset( $jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ] ) ) {
 					$jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ] = Array();
@@ -916,7 +919,7 @@ class BIMBCFManagement {
 			$postId = wp_insert_post( $postData );
 			if( $postId > 0 ) {
 				add_post_meta( $postId, 'guid', $jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ][ 'Guid' ] );
-				add_post_meta( $postId, 'import_status', 'complete', true );
+				
 				add_post_meta( $postId, 'visualizationinfo', $jsonIssue[ 'visualizationinfo' ], false );
 				if( isset( $jsonIssue[ 'markup' ][ 'Topic' ][ 'AssignedTo' ] ) ) {
 					add_post_meta( $postId, 'assigned_to', $jsonIssue[ 'markup' ][ 'Topic' ][ 'AssignedTo' ] );
@@ -948,9 +951,26 @@ class BIMBCFManagement {
 						}
 					}
 				}
+				if( isset( $jsonIssue[ 'markup' ][ 'Header' ] ) && isset( $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ] ) && count( $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ] ) > 0 ) {
+					$foundOne = false;
+					foreach( $bimservers as $bimserver ) {
+						if( $bimserver[ 'bimserver' ] != '' && $bimserver[ 'project' ] != '' && $bimserver[ 'revision' ] != '' ) {
+							$foundOne = true;
+						}
+					}
+					if( !$foundOne ) {
+						add_post_meta( $postId, 'import_status', 'pending', true );
+					} else {
+						add_post_meta( $postId, 'import_status', 'complete', true );
+					}
+				} else {
+					add_post_meta( $postId, 'import_status', 'complete', true );
+				}
+				
 				foreach( $bimservers as $bimserver ) {
 					if( $bimserver[ 'bimserver' ] != '' ) {
-						add_post_meta( $postId, '_bimsie_uri', $bimserver[ 'bimserver' ] );
+						$uri = BIMBCFManagement::removeProtocol( $bimserver[ 'bimserver' ] );
+						add_post_meta( $postId, '_bimsie_uri', $uri );
 					}
 					if( $bimserver[ 'project' ] != '' ) {
 						add_post_meta( $postId, 'poid', $bimserver[ 'project' ] );
@@ -964,15 +984,26 @@ class BIMBCFManagement {
 					if( !is_array( $jsonIssue[ 'markup' ][ 'Comment' ] ) ) {
 						$jsonIssue[ 'markup' ][ 'Comment' ] = Array( $jsonIssue[ 'markup' ][ 'Comment' ] );
 					}
+					if( count( $jsonIssue[ 'markup' ][ 'Comment' ] ) > 0 ) {
+						$allArrays = true;
+						foreach( $jsonIssue[ 'markup' ][ 'Comment' ] as $comment ) {
+							if( !is_array( $comment ) ) {
+								$allArrays = false;
+								break;
+							}
+						}
+						// It is an array, but does not seem to be an array of comments, we try to fix it by placing an array around it
+						$jsonIssue[ 'markup' ][ 'Comment' ] = Array( $jsonIssue[ 'markup' ][ 'Comment' ] );
+					}
 					foreach( $jsonIssue[ 'markup' ][ 'Comment' ] as $key => $comment ) {
 						if( isset( $comment[ 'Author' ] ) && $comment[ 'Author' ] != '' ) {
-							if( !isset( $comment[ 'Comment' ] ) || $comment[ 'Comment' ] == '' ) {
+							if( !isset( $comment[ 'Comment' ] ) ) {
 								$jsonIssue[ 'markup' ][ 'Comment' ][$key][ 'Comment' ] = '';
 								$comment[ 'Comment' ] = '';
 							}
 							$commentUserId = $wpdb->get_var( $wpdb->prepare( "SELECT ID 
 									FROM {$wpdb->users}
-									WHERE user_email = %s", $comment[ 'Author' ] ) );
+									WHERE user_email = %s OR user_login = %s", $comment[ 'Author' ], $comment[ 'Author' ] ) );
 							$extraContent = "\n";
 							if( isset( $comment[ 'Status' ] ) ) {
 							 	$extraContent .= __( 'Status', 'bim-bcf-management' ) . ': ' . $comment[ 'Status' ] . "\n";
@@ -1026,7 +1057,7 @@ class BIMBCFManagement {
 		}
 	}
 
-	private static function writeSnapshot( $postId, $snapshot, $first = false ) {
+	private static function writeSnapshot( $snapshot ) {
 		// We make sure the filename has a dot and extension
 		if( strpos( $snapshot[0], '.' ) !== false ) {
 			$uploadInfo = wp_upload_dir();
@@ -1053,15 +1084,12 @@ class BIMBCFManagement {
 						'post_content' => '',
 						'post_status' => 'inherit'
 				);
-				$attachId = wp_insert_attachment( $attachment, $uploadInfo[ 'path' ] . '/' . $filename, $postId );
+				$attachId = wp_insert_attachment( $attachment, $uploadInfo[ 'path' ] . '/' . $filename );
 				// you must first include the image.php file
 				// for the function wp_generate_attachment_metadata() to work
 				require_once( ABSPATH . 'wp-admin/includes/image.php' );
 				$attachData = wp_generate_attachment_metadata( $attachId, $uploadInfo[ 'path' ] . '/' . $filename );
 				wp_update_attachment_metadata( $attachId, $attachData );
-				if( $first ) {
-					set_post_thumbnail( $postId, $attachId );
-				}
 				return $attachId;
 			} else {
 				return false;
@@ -1152,13 +1180,13 @@ class BIMBCFManagement {
 						$server = '';
 					}
 				}
-				if( is_array( $_POST[ 'file_project' ] ) ) {
+				if( isset( $_POST[ 'file_project' ] ) && is_array( $_POST[ 'file_project' ] ) ) {
 					foreach( $_POST[ 'file_project' ] as $key => $project ) {
 						if( $project != '' ) {
 							$jsonIssue[ 'markup' ][ 'Header' ][ 'File' ][] = Array(
 									'bimserver' => $server,
-									'project' => $project,
-									'revision' => isset( $_POST[ 'file_revision' ][$key] ) ? $_POST[ 'file_revision' ][$key] : '',
+									'poid' => $project,
+									'roid' => isset( $_POST[ 'file_revision' ][$key] ) ? $_POST[ 'file_revision' ][$key] : '',
 									'Filename' => isset( $_POST[ 'file_reference' ][$key] ) ? $_POST[ 'file_reference' ][$key] : '',
 									'Date' => isset( $_POST[ 'file_date' ][$key] ) ? $_POST[ 'file_date' ][$key] : date( 'Y-m-d\TH:i:sP' ),
 									'Reference' => isset( $_POST[ 'file_reference' ][$key] ) ? $_POST[ 'file_reference' ][$key] : '',
@@ -1400,10 +1428,6 @@ class BIMBCFManagement {
 
 				$postId = BIMBCFManagement::addIssue( $jsonIssue );
 				if( $postId !== false ) {
-					if( $server == '' ) {
-						update_post_meta( $postId, 'import_status', 'pending' );
-					}
-
 					// add images to this post and set first as featured
 					$first = true;
 					foreach( $attachments as $attachmentId ) {
