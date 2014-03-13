@@ -112,7 +112,11 @@ if( isset( $request ) ) {
 					if( $userId !== false ) {
 						$data = false;
 						if( isset( $request[ 'request' ][ 'parameters' ][ 'issue' ] ) ) {
-							$result = BIMBCFManagement::addIssue( $request[ 'request' ][ 'parameters' ][ 'issue' ], $userId ) !== false;
+							$result = BIMBCFManagement::addIssue( $request[ 'request' ][ 'parameters' ][ 'issue' ], $userId );
+							if( $result !== false ) {
+								$issue = get_post( $result );
+								$result = BIMBCFManagement::getJSONFromIssue( $issue );
+							}
 						} else {
 							$invalid = true;
 							$errorType = 'InvalidRequest';
