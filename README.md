@@ -1,9 +1,7 @@
-BimConsiderationForum  BCF Server
+BimConsiderationForum and BCF Server
 ===============================
 
-![BCF](https://f.cloud.github.com/assets/2679513/1755982/5514cdba-666d-11e3-97ca-9800a33bfaca.png "The BCF logo")
+BCF Server is a Wordpress plugin to create a 'BCF topic server' from your wordpress installation (including a webservice API).  Ready for BCF 2.0, communicating with BIMserver.org.
 
-Server to communicate on BIM issues and status. 
-Will be a Wordpress plugin.
-Ready for BCF 2.0, communicating with BIMSie API and BIMserver.org.
+BimConsiderationForum is a html/javascript 'dashboard' that combines BIMserver, BIM Surfer and BCF Server into a single view.
 
