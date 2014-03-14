@@ -1,0 +1,12 @@
+[submodule "bimsurfer"]
+	path = consideration-forum/bimsurfer
+	url = git://github.com/opensourceBIM/BIMsurfer
+[submodule "dojo"]
+	path = consideration-forum/js/dojo
+	url = git://github.com/dojo/dojo
+[submodule "put-selector"]
+	path = consideration-forum/js/put-selector
+	url = git://github.com/kriszyp/put-selector
+[submodule "dijit"]
+	path = consideration-forum/js/dijit
+	url = git://github.com/dojo/dijit
