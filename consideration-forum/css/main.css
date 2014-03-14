@@ -1,0 +1,219 @@
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: #fff;
+}
+
+#supermain {
+    width: 100%;
+    height: 100%;
+    visibility: hidden;
+}
+
+.dijitSplitter {
+    border: solid 1px #eee;
+}
+
+.dijitSplitterHover {
+    border-color: #ccc;
+}
+
+.dijitSplitterH {
+    border-width: 1px 0;
+    height: 5px;
+}
+
+.dijitSplitterV {
+    border-width: 0 1px;
+    width: 5px;
+}
+
+.ui-widget-overlay {
+    display: none;
+}
+
+.dijitHidden div,
+.tabStripButton {
+    display: none;
+}
+
+.dijitTab {
+    display: inline-block;
+    padding: 8px 24px;
+    margin: 10px 10px 0 10px;
+    cursor: pointer;
+    border-radius: 5px 5px 0 0;
+}
+
+.dijitTabChecked {
+    border: solid 1px #ccc;
+    border-bottom: solid 1px white;
+    background: white;
+}
+
+.dijitTabDisabled {
+    opacity: 0.3;
+}
+
+.dijitTabController {
+    border-bottom: solid 1px #ccc;
+    background-color: #eee;
+    color: #555;
+}
+
+form.loginForm,
+form.projectsForm {
+    width: 1000px;
+    margin: 32px auto 0 auto;
+    
+}
+
+.projectsTable tbody tr,
+.issuesTable tbody tr {
+    cursor: pointer;
+}
+
+#timeline {
+    height: 100%;
+}
+
+#timeline ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    height: 100%;
+}
+
+#timeline ul li {
+    display: inline-block;
+    width: 200px;
+    height: 100%;
+    border-right: solid 1px #ccc;
+    font-size: 10pt;
+    text-align: center;
+}
+
+#timeline ul li.selected {
+    background: url(/img/up.png) no-repeat 83px 83px #eee;
+}
+
+#timeline ul li .IDs {
+    padding-top: 20px;
+}
+
+#timeline ul li .IDs span.number {
+    padding-right: 20px;
+}
+
+div#layer_list
+{
+    background: white;
+    position: absolute;
+    right: 0px;
+    top: 0px;
+    width: 250px;
+    border: 1px solid #eee;
+    margin: 20px;
+    padding: 5px 10px;
+    overflow: auto;
+    cursor: pointer;
+    display: none;
+}
+
+div#layer_list:hover {
+    border-color: #ccc;
+}
+
+div#layer_list h2 {
+    padding: 0;
+    margin: 0;
+    font-weight: 100;
+    font-size: 12px;
+}
+
+.BIMSURFER-Control-LayerList-Project-Title {
+    display: none;
+}
+
+div#layer_list .BIMSURFER-Control-LayerList-ifcType-Name {
+    padding-left: 4px;
+    font-weight: 100;
+}
+
+h1.issue_header {
+    display: block;
+    padding: 18px 0 0 8px;
+    margin: 0 120px 20px 0;
+    font-size: 21px;
+    font-weight: 100;
+    color: #333;
+    border: 0;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+#addIssueButton {
+    float: right;
+    margin-top: -45px;
+}
+
+.dijitDialog {
+    border: solid 1px #ccc;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.25);
+}
+
+.dijitDialogTitleBar {
+    border-bottom: solid 1px #ccc;
+    cursor: move;
+    padding: 7px 14px;
+    background: #eee;
+    font-size: 120%;
+}
+
+.dijitDialogPaneContent {
+    background: white;
+    padding: 10px 8px;
+    position: relative;
+}
+
+.dijitDialogPaneContent form input,
+.dijitDialogPaneContent form select {
+    width: 350px;
+}
+
+#addIssueSubmitButton {
+    width: 200px;
+    margin: 0 0 0 275px;
+    display: block;
+}
+
+.dijitDialogPaneContent legend {
+    font-size: 14px;
+    padding-left: 5px;
+}
+
+.dijitDialogUnderlayWrapper {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 998;
+    display: none;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.dijitDialogCloseIcon {
+    position: absolute;
+    right: 5px;
+    width: 21px;
+    cursor: pointer;
+}
+
+:focus {
+    outline: none
+}
+
+#viewpointData {
+    font-size: 80%;
+    margin: -10px 0 6px 20px;
+}
