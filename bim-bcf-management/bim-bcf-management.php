@@ -42,10 +42,10 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  * Displays an inactive message if the API License Key has not yet been activated
  */
 if ( get_option( 'bim_bcf_management_activated' ) != 'Activated' ) {
-    add_action( 'admin_notices', 'bim_bcf_management::am_example_inactive_notice' );
+    add_action( 'admin_notices', 'BIM_BCF_Management::am_example_inactive_notice' );
 }
 
-class bim_bcf_management {
+class BIM_BCF_Management {
 
 	/**
 	 * Self Upgrade Values
@@ -353,7 +353,7 @@ class bim_bcf_management {
 } // End of class
 
 function BCF() {
-    return bim_bcf_management::instance();
+    return BIM_BCF_Management::instance();
 }
 
 // Initialize the class instance only once
