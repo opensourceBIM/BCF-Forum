@@ -1,0 +1,20 @@
+.main h3, .sidebar h3 { color: black; background-color: #e5f3ff; padding: 4px 8px; }
+.sidebar { border: 2px solid #e5f3ff; width: 20%; float: right; padding: 0px 10px 0px 10px; margin: 15px 10px 0px 0px; }
+.main { float: left; width: 70%; }
+ul.celist{ list-style-type: square; list-style-position:inside; }
+.hidden {visibility:hidden;}
+.alert { background-color: #fffedf; font-weight: bold; padding: 10px; text-align: center; }
+.icon-pos {
+	padding-right:10px;
+	padding-left:10px;
+	/* Positions icon from the top */
+	position: relative;
+	top: 3px;
+}
+input[type='text'],
+textarea {
+	width: 90%;
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+}
