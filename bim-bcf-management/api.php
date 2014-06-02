@@ -15,7 +15,9 @@ $supportedCalls = Array(
 	'Bimsie1BcfInterface' => Array(
 		'getIssuesByProjectRevision' => Array( 'bimsieUrl', 'poid', 'roid' ),
 		'addIssue' => Array( 'issue' ),
-		'getExtensions' => Array()
+		'getExtensions' => Array(),
+		'addComment' => Array( 'issueGuid', 'comment' ),
+		'getComments' => Array( 'bimsieUrl' )
 	)
 );
 
@@ -89,7 +91,7 @@ if( isset( $request ) ) {
 					if( isset( $request[ 'request' ][ 'parameters' ][ 'bimsieUrl' ] ) && $request[ 'request' ][ 'parameters' ][ 'bimsieUrl' ] != '' &&
 							isset( $request[ 'request' ][ 'parameters' ][ 'poid' ] ) && is_numeric( $request[ 'request' ][ 'parameters' ][ 'poid' ] ) &&
 							isset( $request[ 'request' ][ 'parameters' ][ 'roid' ] ) && is_numeric( $request[ 'request' ][ 'parameters' ][ 'roid' ] ) ) {
-						$userId = BIMsie::getUserIdByToken( $request[ 'token' ] );
+						$userId = BIMsie::getUserIdByToken( isset( $request[ 'token' ] ) ? $request[ 'token' ] : '' );
 						if( $userId !== false ) {
 							// return list of issues for the current user with the right server/poid/roid combi
 							$issues = BIMBCFManagement::getIssuesByProjectRevision( $userId, $request[ 'request' ][ 'parameters' ][ 'bimsieUrl' ], $request[ 'request' ][ 'parameters' ][ 'poid' ], $request[ 'request' ][ 'parameters' ][ 'roid' ] );
@@ -108,9 +110,8 @@ if( isset( $request ) ) {
 						$errorMessage  = __( 'Unsupported interface or method, check supported methods by browsing to: ', 'bim-bcf-management' ) . plugins_url( 'api.php', __FILE__ );
 					}
 				} elseif( $request[ 'request' ][ 'method' ] == 'addIssue' ) {
-					$userId = BIMsie::getUserIdByToken( $request[ 'token' ] );
+					$userId = BIMsie::getUserIdByToken( isset( $request[ 'token' ] ) ? $request[ 'token' ] : '' );
 					if( $userId !== false ) {
-						$data = false;
 						if( isset( $request[ 'request' ][ 'parameters' ][ 'issue' ] ) ) {
 							$result = BIMBCFManagement::addIssue( $request[ 'request' ][ 'parameters' ][ 'issue' ], $userId );
 							if( $result !== false ) {
@@ -178,6 +179,46 @@ if( isset( $request ) ) {
 						$errorType = 'UserException';
 						$errorMessage = __( 'Invalid token', 'bim-bcf-management' );
 					}
+				} elseif( $request[ 'request' ][ 'method' ] == 'addComment' ) {
+					$userId = BIMsie::getUserIdByToken( isset( $request[ 'token' ] ) ? $request[ 'token' ] : '' );
+					if( $userId !== false ) {
+						if( isset( $request[ 'request' ][ 'parameters' ][ 'issueGuid' ] ) && isset( $request[ 'request' ][ 'parameters' ][ 'comment' ] ) ) {
+							$result = BIMBCFManagement::addComment( $request[ 'request' ][ 'parameters' ][ 'issueGuid' ], $request[ 'request' ][ 'parameters' ][ 'comment' ], $userId );
+							if( $result === false ) {
+								$invalid = true;
+								$errorType = 'InvalidRequest';
+								$errorMessage  = __( 'Invalid parameters or not allowed to comment on this issue.', 'bim-bcf-management' );
+							}
+						} else {
+							$invalid = true;
+							$errorType = 'InvalidRequest';
+							$errorMessage  = __( 'Unsupported interface or method, check supported methods by browsing to: ', 'bim-bcf-management' ) . plugins_url( 'api.php', __FILE__ );
+						}
+					} else {
+						$invalid = true;
+						$errorType = 'UserException';
+						$errorMessage = __( 'Invalid token', 'bim-bcf-management' );
+					}					
+				} elseif( $request[ 'request' ][ 'method' ] == 'getComments' ) {
+					$userId = BIMsie::getUserIdByToken( isset( $request[ 'token' ] ) ? $request[ 'token' ] : '' );
+					if( $userId !== false ) {
+						if( isset( $request[ 'request' ][ 'parameters' ][ 'bimsieUrl' ] ) ) {
+							$result = BIMBCFManagement::getComments( $request[ 'request' ][ 'parameters' ][ 'bimsieUrl' ], $userId );
+							if( $result === false ) {
+								$invalid = true;
+								$errorType = 'InvalidRequest';
+								$errorMessage  = __( 'Invalid parameters or not allowed to comment on this issue.', 'bim-bcf-management' );
+							}
+						} else {
+							$invalid = true;
+							$errorType = 'InvalidRequest';
+							$errorMessage  = __( 'Unsupported interface or method, check supported methods by browsing to: ', 'bim-bcf-management' ) . plugins_url( 'api.php', __FILE__ );
+						}
+					} else {
+						$invalid = true;
+						$errorType = 'UserException';
+						$errorMessage = __( 'Invalid token', 'bim-bcf-management' );
+					}					
 				}
 			}
 		} else {

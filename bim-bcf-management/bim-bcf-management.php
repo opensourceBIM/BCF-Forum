@@ -278,8 +278,8 @@ class BIMBCFManagement {
 					<label for="password-new"><?php _e( 'Password', 'bim-bcf-management' ); ?></label> <input type="password" id="password-new" name="password" placeholder="<?php _e( 'Password', 'bim-bcf-management' ); ?>" value="" /><br />
 					<input type="submit" name="new" value="<?php _e( 'Add and view', 'bim-bcf-management' ); ?>" />
 				</form>
-			</div>				
-<?php				
+			</div>
+<?php
 			}
 		} else {
 ?>
@@ -834,7 +834,7 @@ class BIMBCFManagement {
 		}
 		// Create a post with information from the XML issue
 		$options = BIMBCFManagement::getOptions();
-		
+
 		$jsonIssue = Array( 'markup' => $markup, 'visualizationinfo' => $visualizationInfo );
 		if( $project !== false ) {
 			$jsonIssue[ 'projectextension' ] = $project;
@@ -848,7 +848,7 @@ class BIMBCFManagement {
 		if( !isset( $jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ][ 'Guid' ] ) ) {
 			$jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ][ 'Guid' ] = $guid;
 		}
-		
+
 		// Import images as WordPress attachments
 		$snapshotIds = Array();
 		foreach( $snapshots as $snapshot ) {
@@ -857,7 +857,7 @@ class BIMBCFManagement {
 				$snapshotIds[] = Array( 'id' => $id, 'file' => $snapshot[0] );
 			}
 		}
-			
+
 		// Put snapshot urls in instead of file references
 		if( isset( $markup[ 'Viewpoints' ] ) && is_array( $markup[ 'Viewpoints' ] ) ) {
 			foreach( $markup[ 'Viewpoints' ] as &$viewpoint ) {
@@ -869,7 +869,7 @@ class BIMBCFManagement {
 				}
 			}
 		}
-		
+
 		$postId = BIMBCFManagement::addIssue( $jsonIssue );
 		if( $postId !== false ) {
 			$first = true;
@@ -918,8 +918,36 @@ class BIMBCFManagement {
 			);
 			$postId = wp_insert_post( $postData );
 			if( $postId > 0 ) {
+
+				if( isset( $jsonIssue[ 'markup' ] ) && isset( $jsonIssue[ 'markup' ][ 'Viewpoints' ] ) && isset( $jsonIssue[ 'markup' ][ 'Viewpoints' ] ) && is_array( $jsonIssue[ 'markup' ][ 'Viewpoints' ] ) ) {
+					$attachmentIds = Array();
+					foreach( $jsonIssue[ 'markup' ][ 'Viewpoints' ] as $key => $viewpoint ) {
+						if( isset( $viewpoint[ 'SnapshotBase64' ] ) ) {
+							$data = str_replace( 'data:image/png;base64,', '', $viewpoint[ 'SnapshotBase64' ] );
+							$data = str_replace( ' ', '+', $data );
+							$data = base64_decode( $data );
+							$attachmentId = BIMBCFManagement::writeSnapshot( Array( 'snapshot.png', $data ) );
+							unset( $jsonIssue[ 'markup' ][ 'Viewpoints' ][$key][ 'SnapshotBase64' ] ); // We remove the snapshot data here and keep this a s a url
+							if( $attachmentId !== false ) {
+								$jsonIssue[ 'markup' ][ 'Viewpoints' ][$key][ 'Snapshot' ] = wp_get_attachment_url( $attachmentId );
+								$attachmentIds[] = $attachmentId;
+							}
+						}
+					}
+					$first = true;
+					foreach( $attachmentIds as $attachmentId ) {
+						$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->posts}
+							SET post_parent = %d
+							WHERE ID = %d", $postId, $attachmentId ) );
+						if( $first ) {
+							set_post_thumbnail( $postId, $attachmentId );
+							$first = false;
+						}
+					}
+				}
+
 				add_post_meta( $postId, 'guid', $jsonIssue[ 'markup' ][ 'Topic' ][ '@attributes' ][ 'Guid' ] );
-				
+
 				add_post_meta( $postId, 'visualizationinfo', $jsonIssue[ 'visualizationinfo' ], false );
 				if( isset( $jsonIssue[ 'markup' ][ 'Topic' ][ 'AssignedTo' ] ) ) {
 					add_post_meta( $postId, 'assigned_to', $jsonIssue[ 'markup' ][ 'Topic' ][ 'AssignedTo' ] );
@@ -936,11 +964,11 @@ class BIMBCFManagement {
 						if( !isset( $file[ 'roid' ] ) ) {
 							$jsonIssue[ 'markup' ][ 'Header' ][ 'File' ][$key][ 'roid' ] = '';
 						}
-						
+
 						if( !in_array( $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ][$key][ 'bimserver' ] . '-' . $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ][$key][ 'poid' ] . '-' . $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ][$key][ 'roid' ], $bimservers ) ) {
 							$bimservers[$jsonIssue[ 'markup' ][ 'Header' ][ 'File' ][$key][ 'bimserver' ] . '-' . $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ][$key][ 'poid' ] . '-' . $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ][$key][ 'roid' ]] = Array(
-								'bimserver' => $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ][$key][ 'bimserver' ],	
-								'project' => $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ][$key][ 'poid' ],	
+								'bimserver' => $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ][$key][ 'bimserver' ],
+								'project' => $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ][$key][ 'poid' ],
 								'revision' => $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ][$key][ 'roid' ]
 							);
 						}
@@ -966,7 +994,7 @@ class BIMBCFManagement {
 				} else {
 					add_post_meta( $postId, 'import_status', 'complete', true );
 				}
-				
+
 				foreach( $bimservers as $bimserver ) {
 					if( $bimserver[ 'bimserver' ] != '' ) {
 						$uri = BIMBCFManagement::removeProtocol( $bimserver[ 'bimserver' ] );
@@ -979,7 +1007,7 @@ class BIMBCFManagement {
 						add_post_meta( $postId, 'roid', $bimserver[ 'revision' ] );
 					}
 				}
-				
+
 				if( isset( $jsonIssue[ 'markup' ][ 'Comment' ] ) ) {
 					if( !is_array( $jsonIssue[ 'markup' ][ 'Comment' ] ) ) {
 						$jsonIssue[ 'markup' ][ 'Comment' ] = Array( $jsonIssue[ 'markup' ][ 'Comment' ] );
@@ -1001,7 +1029,7 @@ class BIMBCFManagement {
 								$jsonIssue[ 'markup' ][ 'Comment' ][$key][ 'Comment' ] = '';
 								$comment[ 'Comment' ] = '';
 							}
-							$commentUserId = $wpdb->get_var( $wpdb->prepare( "SELECT ID 
+							$commentUserId = $wpdb->get_var( $wpdb->prepare( "SELECT ID
 									FROM {$wpdb->users}
 									WHERE user_email = %s OR user_login = %s", $comment[ 'Author' ], $comment[ 'Author' ] ) );
 							$extraContent = "\n";
@@ -1039,11 +1067,11 @@ class BIMBCFManagement {
 									'comment_date' => $time,
 									'comment_approved' => 1,
 							);
-							wp_insert_comment( $data );						
-						}						
+							wp_insert_comment( $data );
+						}
 					}
 				}
-				
+
 				add_post_meta( $postId, 'markup', $jsonIssue[ 'markup' ], false );
 				if( isset( $jsonIssue[ 'projectextension' ] ) ) {
 					add_post_meta( $postId, 'projectextension', $jsonIssue[ 'projectextension' ], false );
@@ -1134,8 +1162,15 @@ class BIMBCFManagement {
 
 	public static function getUserIdTypes() {
 		global $wpdb;
+		$blogId = get_current_blog_id();
+		if( $blogId > 1 ) {
+			$capabilities = "wp_{$blogId}_capabilities";
+		} else {
+			$capabilities = 'wp_capabilities';
+		}
 		$users = $wpdb->get_results( "SELECT user_email
 			FROM {$wpdb->users}
+			JOIN $wpdb->usermeta ON user_id = ID AND meta_key = '$capabilities'
 			ORDER BY user_email ASC" );
 		$emails = Array();
 		foreach( $users as $user ) {
@@ -2000,6 +2035,163 @@ class BIMBCFManagement {
 		$parts = explode( '://', $uri );
 		return isset( $parts[1] ) ? $parts[1] : $uri;
 	}
+
+	public static function addComment( $issueGuid, $comment, $userId ) {
+		global $wpdb;
+		$postId = $wpdb->get_var( $wpdb->prepare( "SELECT post_id
+				FROM {$wpdb->postmeta}
+				WHERE meta_key = 'guid' AND meta_value = %s", $issueGuid ) );
+		if( isset( $postId ) && $postId != '' ) {
+			$issue = get_post( $postId );
+			$authorized = false;
+			$user = get_user_by( 'id', $userId );
+			$options = BIMBCFManagement::getOptions();
+			$assignedTo = get_post_meta( $issue->ID, 'assigned_to', true );
+			if( $issue->post_author == $userId || $user->user_email == $assignedTo ) {
+				$authorized = true;
+			}
+			$uri = get_post_meta( $issue->ID, '_bimsie_uri', true );
+			$poids = get_post_meta( $issue->ID, 'poid' );
+			// We have not published this issue and it is not assigned to us
+			// Check if we have access to at least one of its project(s)
+			if( !$authorized ) {
+				foreach( $poids as $poid ) {
+					$project = BIMsie::getProject( $uri, $poid, $userId );
+					if( $project ) {
+						$authorized = true;
+						break;
+					}
+				}
+			}
+			if( $issue->post_type == $options[ 'bcf_issue_post_type' ] && $authorized ) {
+				if( !isset( $comment[ 'VerbalStatus' ] ) ) {
+					$comment[ 'VerbalStatus' ] = '';
+				}
+				if( !isset( $comment[ 'Status' ] ) ) {
+					$comment[ 'Status' ] = '';
+				}
+				if( !isset( $comment[ 'Date' ] ) ) {
+					$comment[ 'Date' ] = date( 'Y-m-d\TH:i:sP' );
+				}
+				if( !isset( $comment[ 'Author' ] ) ) {
+					$comment[ 'Author' ] = $user->user_email;
+				}
+				if( !isset( $comment[ 'Comment' ] ) ) {
+					$comment[ 'Comment' ] = '';
+				}
+				if( !isset( $comment[ 'Topic' ] ) ) {
+					$comment[ 'Topic' ] = Array();
+				}
+				if( !isset( $comment[ 'ModifiedDate' ] ) ) {
+					$comment[ 'ModifiedDate' ] = date( 'Y-m-d\TH:i:sP' );
+				}
+				if( !isset( $comment[ 'Priority' ] ) ) {
+					$comment[ 'Priority' ] = '';
+				}
+				$topicStatuses = explode( ',', $options[ 'topic_statuses' ] );
+				$priorities = explode( ',', $options[ 'priorities' ] );
+				$markup = get_post_meta( $postId, 'markup', true );
+				if( !in_array( $comment[ 'VerbalStatus' ], $topicStatuses ) ) {
+					$comment[ 'VerbalStatus' ] = isset( $topicStatuses[0] ) ? $topicStatuses[0] : '';
+				}
+				if( !in_array( $comment[ 'Priority' ], $priorities ) ) {
+					$comment[ 'Priority' ] = isset( $priorities[0] ) ? $priorities[0] : '';
+				}
+				$markup[ 'Comment' ][] = $comment;
+				update_post_meta( $issue->ID, 'markup', $markup );
+
+				$commentData = Array(
+						'comment_post_ID' => $issue->ID,
+						'comment_author' => $comment[ 'Author' ],
+						'comment_author_email' => $comment[ 'Author' ],
+						'comment_author_url' => '',
+						'comment_content' => $comment[ 'Comment' ],
+						'comment_type' => '',
+						'comment_parent' => 0,
+						'user_id' => $userId,
+						'comment_author_IP' => '127.0.0.1',
+						'comment_agent' => 'BCF API',
+						'comment_date' => $comment[ 'Date' ],
+						'comment_approved' => 1
+						);
+				$commentData[ 'comment_content' ] = $commentData[ 'comment_content' ] . "\n" . __( 'Status', 'bim-bcf-management' ) . ': ' . $comment[ 'Status' ];
+				$commentData[ 'comment_content' ] = $commentData[ 'comment_content' ] . "\n" . __( 'VerbalStatus', 'bim-bcf-management' ) . ': ' . $comment[ 'VerbalStatus' ];
+				$commentData[ 'comment_content' ] = $commentData[ 'comment_content' ] . "\n" . __( 'Priority', 'bim-bcf-management' ) . ': ' . $comment[ 'Priority' ];
+				wp_insert_comment( $commentData );
+
+				return BIMBCFManagement::getJSONFromIssue( $issue );
+			} else {
+				return false;
+			}
+		} else {
+			return false;
+		}
+	}
+
+	public static function getComments( $bimsieUrl, $userId ) {
+		$projects = BIMsie::getProjects( $bimsieUrl, $userId );
+		return BIMBCFManagement::getMostRecentCommentsForProjects( $bimsieUrl, $projects );
+	}
+
+	public static function getMostRecentCommentsForProjects( $bimsieUrl, $projects ) {
+		global $wpdb;
+		if( !isset( $projects ) || !is_array( $projects ) ) {
+			return Array();
+		}
+		$options = BIMBCFManagement::getOptions();
+		// get issues for bimsie url and poid
+		$bimsieUrl = BIMBCFManagement::removeProtocol( $bimsieUrl );
+		$issues = Array();
+		foreach( $projects as $project ) {
+			$issues = array_merge( $issues, get_posts( Array(
+					'post_type' => $options[ 'bcf_issue_post_type' ],
+					'posts_per_page' => -1,
+					'meta_query' => Array(
+							'relation' => 'AND',
+							Array(
+									'key' => 'import_status',
+									'value' => 'complete'
+							),
+							Array(
+									'key' => '_bimsie_uri',
+									'value' => $bimsieUrl
+							),
+							Array(
+									'key' => 'poid',
+									'value' => $project->oid
+							)
+					)
+			) ) );
+		}
+
+		$includeList = Array();
+		foreach( $issues as $issue ) {
+			$includeList[] = $issue->ID;
+		}
+		
+		if( count( $includeList ) > 0 ) {
+			$commentPostIds = $wpdb->get_results( "SELECT comment_post_ID
+					FROM {$wpdb->comments}
+					WHERE comment_post_ID IN (" . implode( ', ', $includeList ) . ")
+					ORDER BY comment_date DESC
+					LIMIT 10" );
+		} else {
+			$commentPostIds = Array();
+		}
+		
+		$markups = Array();
+		$comments = Array();
+		foreach( $commentPostIds as $commentPostId ) {
+			if( !isset( $markups[$commentPostId->comment_post_ID] ) ) {
+				$markups[$commentPostId->comment_post_ID] = get_post_meta( $commentPostId->comment_post_ID, 'markup', true );
+			}
+
+			$comments[] = array_pop( $markups[$commentPostId->comment_post_ID][ 'Comment' ] );
+
+		}
+		return $comments;
+	}
+
 }
 
 $bimBCFManagement = new BIMBCFManagement();
