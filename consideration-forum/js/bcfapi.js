@@ -1,15 +1,22 @@
-define(['dojo/_base/declare', 'dojo/request', 'dojo/_base/lang', 'dojo/_base/array'], function(declare, request, lang, array) {
+define(['dojo/_base/declare', 'dojo/request', 'dojo/_base/lang',
+'dojo/_base/array'],
+
+function(declare, request, lang, array) {
+
     var methods = [
         {              name: 'test',                       method: 'get',  args: []                           },
         {itfc: 'auth', name: 'login',                      method: 'post', args: ['username', 'password']     },
         {itfc: 'bcf',  name: 'getExtensions', 		   method: 'get',  args: []                           },
         {itfc: 'bcf',  name: 'getIssuesByProjectRevision', method: 'get',  args: ['bimsieUrl', 'poid', 'roid']},
-        {itfc: 'bcf',  name: 'addIssue', 		   method: 'post', args: ['issue']                    }
+        {itfc: 'bcf',  name: 'addIssue', 		   method: 'post', args: ['issue']                    },
+        {itfc: 'bcf',  name: 'addComment', 		   method: 'post', args: ['issueGuid', 'comment']     }
     ];
+    
     var interfaces = {
         auth: 'Bimsie1AuthInterface',
         bcf : 'Bimsie1BcfInterface'
     };
+    
     return declare([], {
         token: null,
         constructor: function(args) {

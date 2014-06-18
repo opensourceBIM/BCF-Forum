@@ -1,5 +1,8 @@
 define(['dojo/_base/Deferred'], function(Deferred) {
 
+// A small set of utility functions that queries the BIMserver model for the
+// (length) unit referenced by the project and its magnitude.
+
 var prefixes = {
     EXA   : 1e18,
     PETA  : 1e15,
@@ -20,9 +23,10 @@ var prefixes = {
 };
 
 var getUnitValue = function(unit, callback) {
-      if (unit.__type == "IfcSIUnit") {
-          callback(prefixes[unit.Prefix] || 1.);
-      } else if (unit.__type == "IfcConversionBasedUnit") {
+      var type = unit.object.__type;
+      if (type == "IfcSIUnit") {
+          callback(prefixes[unit.getPrefix()] || 1.);
+      } else if (type == "IfcConversionBasedUnit") {
           unit.getConversionFactor(function(measureWithUnit) {
               measureWithUnit.getUnitComponent(function(unitComponent) {
                   measureWithUnit.getValueComponent(function(valueComponent) {
@@ -38,20 +42,26 @@ var getUnitValue = function(unit, callback) {
 return {
     get: function(api, poid, roid, type) {
         var d = new Deferred();
-        api.getModel(poid, roid, false, function(model){
+        api.getModel(poid, roid, null, false, function(model){
             model.getAllOfType("IfcProject", true, function(project){
                 project.getUnitsInContext(function(unitsInContext){
                     unitsInContext.getUnits(function(unit){
                         if (unit.getUnitType() == type) {
-                            getUnitValue(unit, function(v) { d.resolve(v); } );
+                            getUnitValue(unit, function(v) { 
+                              console.log('Found unit ' + type + ' = ' + v);
+                              d.resolve(v); 
+                            } );
                         }
                     });
                 });
             });
         });
         return d;
+    },
+    getMagnitude: function(s) {
+        var prefix = s.toUpperCase().replace(/METER$/, '');
+        return prefixes[prefix] || 1.;
     }
 };
 
 });
-                                

@@ -67,12 +67,26 @@ form.loginForm,
 form.projectsForm {
     width: 1000px;
     margin: 32px auto 0 auto;
-    
+}
+
+form.loginForm.login #logoutButtonContainer {
+    display: none;
+}
+
+form.loginForm.logout #loginButtonContainer {
+    display: none;
 }
 
 .projectsTable tbody tr,
-.issuesTable tbody tr {
+.issuesTable tbody tr,
+.projectsTable thead tr,
+.issuesTable thead tr,
+#commentsTable thead tr {
     cursor: pointer;
+}
+
+tbody tr.selected td {
+    background-color: #ddd !important;
 }
 
 #timeline {
@@ -120,6 +134,23 @@ div#layer_list
     overflow: auto;
     cursor: pointer;
     display: none;
+}
+
+div#loadingPercentage
+{
+    background-color: white;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100px;
+    height: 100px;
+    display: none;
+    border: solid 1px #666;
+    padding: 70px 0 0 0;
+    text-align: center;
+    background-position-y: 30px;
+    color: #666;
+    opacity: 0.5;
 }
 
 div#layer_list:hover {
@@ -182,10 +213,19 @@ h1.issue_header {
     width: 350px;
 }
 
-#addIssueSubmitButton {
-    width: 200px;
+#addCommentForm input,
+#addCommentForm select {
+    width: 500px;
+}
+
+#addIssueSubmitButton, #addCommentButton {
+    width: 200px !important;
     margin: 0 0 0 275px;
     display: block;
+}
+
+#addCommentButton {
+    margin-left: 300px;
 }
 
 .dijitDialogPaneContent legend {
@@ -213,7 +253,235 @@ h1.issue_header {
     outline: none
 }
 
-#viewpointData {
+#viewpointData,
+#guidData {
     font-size: 80%;
     margin: -10px 0 6px 20px;
+}
+
+.RevisionList {
+    background: url('../img/ruler.png') repeat-x;    
+    font-size: 80%;
+    overflow: hidden;
+}
+
+.RevisionList .revision {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 240px;
+    background: white;
+    margin-top: 20px;
+    border-left: solid 1px #eee;
+    padding-left: 2px;
+    cursor: pointer;
+}
+
+.RevisionList .number {
+    display: inline-block;
+    background: url('../img/up.png') no-repeat center 2px;
+    font-size: 300%;
+    padding-top: 10px;
+}
+
+.RevisionList .id {
+    display: inline-block;
+    padding-left: 32px;
+}
+
+.RevisionList .comment,
+.RevisionList .date {
+    padding-top: 10px;
+}
+
+.RevisionList .date {
+    color: #888;
+}
+
+.RevisionList .pointerContainer {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 68px;
+    border: none;
+    heigth: 84px;
+    background: transparent;
+    z-index: 99999;
+}
+
+.RevisionList .pointerContainer .move {
+    display: block;
+    position: absolute;
+    top: 43px;
+    cursor: pointer;
+    left: 4px;	
+    width: 8px;
+    height: 16px;
+    background-image: url(../img/left.png);
+    opacity: 0.7;
+}
+
+.RevisionList .pointerContainer .move:hover {
+    opacity: 1.0;
+}
+
+.RevisionList .pointerContainer .moveRight {
+    left: 56px;
+    background-image: url(../img/right.png);
+}
+
+.RevisionList .pointer {
+    position: absolute;
+    left: 18px;
+    top: 0px;
+    width: 32px;
+    border: solid 1px #888;
+    border-top: none;
+    height: 84px;
+    background: white;
+    opacity: 0.3;
+    z-index: 99999;
+    box-shadow: black 0px 0px 10px;
+}
+
+.hide_children div,
+.hide_children span,
+.hide_children h1,
+.hide_children table {
+    display: none !important;
+}
+
+.headerSortDown {
+    background: url(../img/desc.gif) no-repeat right center;
+}
+
+.headerSortUp {
+    background: url(../img/asc.gif) no-repeat right center;
+}
+
+.loading {
+    background: url(../img/loading.gif) no-repeat center;
+}
+
+.form-group {
+    min-height: 34px;
+}
+
+div#loginButtonContainer {
+    background-position: 208px center;
+}
+
+.gfxContainer {
+    position: absolute;
+    top: 128px;
+}
+
+.dijitTooltip {
+    position: absolute;
+    z-index: 2000;
+    display: block;
+    left: 0;
+    top: -10000px;
+    overflow: visible;
+}
+
+.dijitTooltipContainer {
+}
+
+.dijitTooltipConnector {
+    position: absolute;
+}
+
+.dijitBackgroundIframe {
+    display: none;
+}
+
+.dijitArrowButtonChar {
+    padding-left: 5px;
+}
+
+.dijitOffScreen {
+    left: -10000px !important;
+    position: absolute !important;
+    top: -10000px !important;
+}
+
+.dijitArrowButtonChar {
+    margin: 0 0 0 5px;
+    font-size: 75%;
+    vertical-align: 1px;
+    opacity: 0.6;
+}
+
+.dijitPopup {
+    border: solid 1px #ccc;
+    background: white;
+    font-size: small;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.25);
+    background-color: white;
+    border: 0 none;
+    margin: 0;
+    padding: 0;
+    position: absolute;
+}
+
+tr.dijitMenuItem {
+   border-bottom: solid 1px #ccc;
+   cursor: pointer;
+}
+
+tr.dijitMenuItem.dijitHover {
+    background-color: #eee;
+}
+
+tr.dijitMenuItem:last-child {
+   border-bottom: none;
+}
+
+tr.dijitMenuItem .dijitMenuItemLabel {
+   padding: 6px 12px;
+}
+
+.dijitMenuExpandA11y {
+   display: none;
+}
+
+.dijitMenuArrowCell .dijitIcon:after {
+   content: "\25BA";
+}
+
+.dijitMenuPopup .dijitMenuArrowCell .dijitIcon:after {
+   content: "";
+}
+
+.dijitMenuArrowCell {
+    opacity: 0.6;
+    font-size: 75%;
+    padding-right: 12px;
+}
+
+#clearFilterButtonContainer {
+    display: none;
+}
+
+#cpIssues {
+    overflow-y: auto;
+}
+
+#filterText {
+    padding: 7px;
+}
+
+#cpIssueComments {
+    display: none;
+}
+
+tbody#issuesBody td.ncomments:after {
+    content: url(../img/comment.png);
+    margin: 2px 0 0 5px;
+    display: inline-block;
+}
+
+td.ncomments {
+    min-width: 50px;
 }

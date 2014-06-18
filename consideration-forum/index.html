@@ -1,193 +1,256 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <head>
-	<title>BIM Dashboard</title>
-        <meta charset="utf-8" />
-        
-        <script type="text/javascript" data-main="js/main" src="./require.js"></script>
-        
-        <script type="text/javascript" src="./bimsurfer/lib/jquery-1.10.2/jquery-1.10.2.min.js"></script>
-        <script type="text/javascript" src="./bimsurfer/lib/jquery-1.10.2/jquery.cookie.js"></script>
-        <script type="text/javascript" src="./bimsurfer/lib/scenejs-3.1/scenejs.js"></script>
-        <script type="text/javascript" src="./bimsurfer/lib/jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.js"></script>
-        
-        <script type="text/javascript" src="./bimsurfer/api/BIMSURFER.js"></script>
-        
-        <link rel="stylesheet" href="./bimsurfer/lib/jquery-ui-1.10.3.custom/css/custom-theme/jquery-ui-1.10.3.custom.css">
-        
-        <link rel="stylesheet" href="./bimviews/css/bootstrap.min.css" type="text/css" />
-        <link rel="stylesheet" href="./bimviews/css/bootstrap-vert-tabs.css" type="text/css" />
-        
-        <link rel="stylesheet" href="./css/main.css" type="text/css" />
+  <title>BIM Dashboard</title>
+  <meta charset="utf-8">
+  <script type="text/javascript" src="./js/moment.min.js"></script>
+  <script type="text/javascript" data-main="js/main" src="./require.js"></script>
+  <script type="text/javascript" src="./bimsurfer/lib/jquery-1.10.2/jquery-1.10.2.min.js"></script>
+  <script type="text/javascript" src="./bimsurfer/lib/jquery-1.10.2/jquery.cookie.js"></script>
+  <script type="text/javascript" src="./bimsurfer/lib/jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.js"></script>
+  <script type="text/javascript" src="./js/jq/jquery.tablesorter.js"></script>
+  <link rel="stylesheet" href="./bimsurfer/lib/jquery-ui-1.10.3.custom/css/custom-theme/jquery-ui-1.10.3.custom.css" type="text/css">
+  <script type="text/javascript" src="./bimsurfer/lib/scenejs-3.2/scenejs.js"></script>
+  <link rel="stylesheet" href="./bimviews/css/bootstrap.min.css" type="text/css">
+  <link rel="stylesheet" href="./bimviews/css/bootstrap-vert-tabs.css" type="text/css">
+  <link rel="stylesheet" href="./css/main.css" type="text/css">
 </head>
-<body>
-	<div id='supermain' data-dojo-type='dijit/layout/TabContainer'>
-	
-	<div data-dojo-type='dijit/layout/ContentPane'
-	    title="Select Server"
-	    id="cpLogin">
-<div class="header"></div>
-    	<div class="form">
-	    	<form id="loginForm" class="loginForm form-horizontal">
-	    		<legend>BIMserver credentials</legend>
-	    		<div class="serverAddressDiv form-group">
-				<label class="col-lg-2 control-label" for="inputServer">Server</label>
-				<div class="col-lg-8">
-					<div class="input-group">
-						<span class="input-group-addon">http://</span>
-						<input type="text" id="inputServer" class="form-control" placeholder="BIMserver" value="bimserver.tno.nl">
-					</div>
-				</div>
-			</div>
-			<div class="form-group">
-				<label class="col-lg-2 control-label" for="inputEmail">Username</label>
-				<div class="col-lg-8">
-					<div class="input-group">
-		  				<span class="input-group-addon">@</span>
-						<input type="email" class="form-control username" id="inputEmail" placeholder="Username (e-mail address)" value="admin@bimserver.org">
-					</div>
-				</div>
-			</div>
-			<div class="form-group">
-				<label class="col-lg-2 control-label" for="inputPassword">Password</label>
-				<div class="col-lg-8">
-					<div class="input-group">
-			 			<span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
-						<input type="password" class="form-control password" id="inputPassword" placeholder="Password" value="">
-					</div>
-				</div>
-			</div>
-	    		<legend>BCFserver credentials</legend>
-	    		<div class="serverAddressDiv form-group">
-				<label class="col-lg-2 control-label" for="inputServer2">Server</label>
-				<div class="col-lg-8">
-					<div class="input-group">
-						<span class="input-group-addon">http://</span>
-						<input type="text" id="inputServer2" class="form-control" placeholder="BCFserver" value="bcftest.smartbim.org">
-					</div>
-				</div>
-			</div>
-			<div class="form-group">
-				<label class="col-lg-2 control-label" for="inputEmail2">Username</label>
-				<div class="col-lg-8">
-					<div class="input-group">
-		  				<span class="input-group-addon">@</span>
-						<input type="text" class="form-control username" id="inputEmail2" placeholder="Username" value="thomaskrijnen">
-					</div>
-				</div>
-			</div>
-			<div class="form-group">
-				<label class="col-lg-2 control-label" for="inputPassword2">Password</label>
-				<div class="col-lg-8">
-					<div class="input-group">
-			 			<span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
-						<input type="password" class="form-control password" id="inputPassword2" placeholder="Password" value="">
-					</div>
-				</div>
-			</div>
-			<div class="form-group">
-				<div class="col-lg-offset-2 col-lg-10">
-					<input id="loginButton" type="submit" class="btn loginButton btn-primary" value="Sign in" />
-				</div>
-			</div>
-		</form>
-	</div>
-</div>
 
+<body class='loading'>
+  <div id='supermain' data-dojo-type='dijit/layout/TabContainer'>
+    <div data-dojo-type='dijit/layout/ContentPane' title="Select Server" id="cpLogin">
+      <div class="header"></div>
 
-		     <div data-dojo-type='dijit/layout/ContentPane'
-		          title='Select Project'
-		          disabled='disabled'
-		          id='cpProjects'>
-<form class="projectsForm">
-<legend>Select your project</legend>
+      <div class="form">
+        <form id="loginForm" class="loginForm form-horizontal login">
+          <legend>BIMserver credentials</legend>
 
-	<table class="projectsTable table table-striped table-hover">
-		<thead>
-			<tr>
-				<th>Name</th>
-				<th>Sub Projects</th>
-				<th>Revisions</th>
-			</tr>
-		</thead>
-		<tbody id='projectsBody'>
-		</tbody>
-	</table>
+          <div class="serverAddressDiv form-group">
+            <label class="col-lg-2 control-label" for="inputServer">Server</label>
 
-</form>
-		          
-		     </div>
-		     
+            <div class="col-lg-8">
+              <div class="input-group">
+                <span class="input-group-addon">http://</span> <input type="text" name="bimServerAddress" id="inputServer" class="form-control" placeholder="BIMserver">
+              </div>
+            </div>
+          </div>
 
+          <div class="form-group">
+            <label class="col-lg-2 control-label" for="inputEmail">Username</label>
 
+            <div class="col-lg-8">
+              <div class="input-group">
+                <span class="input-group-addon">@</span> <input type="email" name="bimServerUser" class="form-control username" id="inputEmail" placeholder="Username (e-mail address)">
+              </div>
+            </div>
+          </div>
 
-<div data-dojo-type='dijit/layout/ContentPane'
-                          title='View Model'
-                          disabled='disabled'
-                          id='cpView'>	
-	<div id='main' data-dojo-type='dijit/layout/BorderContainer'
-	     data-dojo-props="gutters: false, liveSplitters:true"
-	     title="View">
-		<div data-dojo-type='dijit/layout/BorderContainer'
-		     data-dojo-props="region: 'left', splitter: true, liveSplitters: true"
-		     style='width:60%'>
-		     
-		     <div data-dojo-type='dijit/layout/ContentPane'
-		          data-dojo-props="region: 'top', splitter: true"
-		          style='height:80%'
-		          id='cpViewer'>
-		          
-				<div id='viewport' class='viewer' style='width:100%;height:100%;'>
-				</div>
-				
-				<div id="layer_list">
-					<h2>Layers</h2>
-					<div class="data"></div>
-				</div>
-		          
-		     </div>
-		     
-		     <div data-dojo-type='dijit/layout/ContentPane'
-		          data-dojo-props="region: 'center', splitter: true">
-		          
-		          <div id="timeline">
-		          	<ul id="timelineul"></ul>
-		          </div>
-		          
-		     </div>
+          <div class="form-group">
+            <label class="col-lg-2 control-label" for="inputPassword">Password</label>
 
-		</div>
-		<div data-dojo-type='dijit/layout/ContentPane'
-		     data-dojo-props="region: 'center', splitter: true">
-		     
-		     <h1 class='issue_header'><span id='issueCount'></span> Issues</h1>
+            <div class="col-lg-8">
+              <div class="input-group">
+              	<span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
+                <input type="password" name="bimServerPassword" class="form-control password" id="inputPassword" placeholder="Password">
+              </div>
+            </div>
+          </div><legend>BCFserver credentials</legend>
 
-			<div class="form-group">
-				<div class="col-lg-offset-2 col-lg-10">
-					<button id="addIssueButton" type="button" class="btn loginButton btn-primary">Add issue</button>
-				</div>
-			</div>
+          <div class="serverAddressDiv form-group">
+            <label class="col-lg-2 control-label" for="inputServer2">Server</label>
 
-	<table class="issuesTable table table-striped table-hover">
-		<thead>
-			<tr>
-				<th>Title</th>
-				<th>Author</th>
-				<th>Comment</th>
-				<th>Date</th>
-			</tr>
-		</thead>
-		<tbody id='issuesBody'>
-		</tbody>
-	</table>
+            <div class="col-lg-8">
+              <div class="input-group">
+                <span class="input-group-addon">http://</span> <input type="text" name="bcfServerAddress" id="inputServer2" class="form-control" placeholder="BCFserver">
+              </div>
+            </div>
+          </div>
 
-		     
-		</div>
-	</div>
-	
-	</div>
+          <div class="form-group">
+            <label class="col-lg-2 control-label" for="inputEmail2">Username</label>
 
-</div>
+            <div class="col-lg-8">
+              <div class="input-group">
+                <span class="input-group-addon">@</span> <input type="email" name="bcfServerUser" class="form-control username" id="inputEmail2" placeholder="Username (e-mail address)">
+              </div>
+            </div>
+          </div>
 
-  </body>
+          <div class="form-group">
+            <label class="col-lg-2 control-label" for="inputPassword2">Password</label>
+
+            <div class="col-lg-8">
+              <div class="input-group">
+                <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
+                <input type="password" name="bcfServerPassword" class="form-control password" id="inputPassword2" placeholder="Password">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group" id="loginButtonContainer">
+            <div class="col-lg-offset-2 col-lg-10">
+              <input id="loginButton" type="submit" class="btn loginButton btn-primary" value="Sign in">
+            </div>
+          </div>
+
+          <div class="form-group" id="logoutButtonContainer">
+            <div class="col-lg-offset-2 col-lg-10">
+              <input id="logoutButton" type="reset" class="btn loginButton btn-primary" value="Sign out">
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div data-dojo-type='dijit/layout/ContentPane' title='Select Project' disabled='disabled' id='cpProjects'>
+      <form class="projectsForm">
+        <legend>Select your project</legend>
+
+        <table class="projectsTable table table-striped table-hover">
+          <thead>
+            <tr>
+              <th>Name</th>
+
+              <th>Sub Projects</th>
+
+              <th>Revisions</th>
+            </tr>
+          </thead>
+
+          <tbody id='projectsBody'></tbody>
+        </table>
+      </form>
+    </div>
+
+    <div data-dojo-type='dijit/layout/ContentPane' title='View Model' disabled='disabled' id='cpView'>
+      <div id='main' data-dojo-type='dijit/layout/BorderContainer' data-dojo-props="gutters: false, liveSplitters:true" title="View">
+        <div data-dojo-type='dijit/layout/BorderContainer' data-dojo-props="region: 'left', splitter: true, liveSplitters: true" style='width:60%'>
+          <div data-dojo-type='dijit/layout/ContentPane' data-dojo-props="region: 'top', splitter: true" style='height:80%' id='cpViewer'>
+            <div id='viewport' class='viewer' style='width:100%;height:100%;'></div>
+
+            <div id="layer_list">
+              <h2>Layers</h2>
+
+              <div class="data"></div>
+            </div>
+
+            <div id="loadingPercentage" class='loading'>
+              0%
+            </div>
+          </div>
+
+          <div data-dojo-type='RevisionList' data-dojo-props="region: 'center', splitter: true" id="revisionList"></div>
+        </div>
+
+        <div id='bcIssues' data-dojo-type='dijit/layout/BorderContainer' data-dojo-props="region: 'center', gutters: false, liveSplitters:true">
+          <div data-dojo-type='dijit/layout/ContentPane' class="unfilteredList" data-dojo-props="region: 'center', splitter: true" id="cpIssues">
+            <h1 class='issue_header'><span id='issueCount'></span> Issues</h1>
+
+            <div class="col-lg-offset-2 col-lg-10">
+              <button id="addIssueButton" type="button" class="btn btn-primary">Add issue</button>
+            </div>
+
+            <div data-dojo-type="dijit/form/DropDownButton" class="btn btn-default" id="filterButton" style="margin-left:15px">
+              <span class="btn btn-default">Filter</span>
+
+              <div id="filterMenu" data-dojo-type="dijit/TooltipDialog"></div>
+            </div>
+
+            <div id="clearFilterButtonContainer">
+              <div class="col-lg-3">
+                <button id="clearFilterButton" type="button" class="btn btn-default">Show all</button>
+              </div>
+
+              <div class="col-lg-7" id="filterText"></div>
+            </div>
+
+            <table id="issuesTable" class="issuesTable table table-hover">
+              <thead>
+                <tr>
+                  <th>Title</th>
+
+                  <th>Assignee</th>
+
+                  <th>Label</th>
+
+                  <th>Status</th>
+
+                  <th>Type</th>
+
+                  <th>Priority</th>
+
+                  <th class='date'>Date</th>
+
+                  <th class='ncomments'>&nbsp;</th>
+                </tr>
+              </thead>
+
+              <tbody id='issuesBody'></tbody>
+            </table>
+          </div>
+
+          <div data-dojo-type='dijit/layout/ContentPane' data-dojo-props="region: 'bottom', splitter: true" id="cpIssueComments">
+            <legend>Comments</legend>
+
+            <table id="commentsTable" class="table">
+              <thead>
+                <tr>
+                  <th>Author</th>
+
+                  <th>Comment</th>
+
+                  <th>Topic Status</th>
+
+                  <th>Priority</th>
+
+                  <th>Date</th>
+                </tr>
+              </thead>
+
+              <tbody id='commentsBody'></tbody>
+            </table>
+
+            <div class="form">
+              <form id="addCommentForm" class="commentForm form-horizontal">
+                <legend>Add comment</legend>
+
+                <div class="commentDiv form-group">
+                  <label class="col-lg-2 control-label" for="inputServer">Comment</label>
+
+                  <div class="col-lg-8">
+                    <input type="text" name="commentText" id="inputCommentText" class="form-control" placeholder="Comment">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="col-lg-2 control-label" for="addCommentPriority">Priority</label>
+
+                  <div class="col-lg-8">
+                    <select id='addCommentPriority' name='Priority' class='form-control'>
+                      </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="col-lg-2 control-label" for="addCommentTopicStatus">Topic Status</label>
+
+                  <div class="col-lg-8">
+                    <select id='addCommentTopicStatus' name='TopicStatus' class='form-control'>
+                      </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <div class="col-lg-offset-2 col-lg-10">
+                    <input id="addCommentButton" type="submit" class="btn btn-primary" value="Add">
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
 </html>
