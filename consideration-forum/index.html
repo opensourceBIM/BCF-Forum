@@ -1,19 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>BIM Dashboard</title>
+  <title>BCF Forum</title>
   <meta charset="utf-8">
-  <script type="text/javascript" src="./js/moment.min.js"></script>
-  <script type="text/javascript" data-main="js/main" src="./require.js"></script>
+  
+  <script type="text/javascript" src="./js/lib/moment.min.js"></script>
   <script type="text/javascript" src="./bimsurfer/lib/jquery-1.10.2/jquery-1.10.2.min.js"></script>
   <script type="text/javascript" src="./bimsurfer/lib/jquery-1.10.2/jquery.cookie.js"></script>
   <script type="text/javascript" src="./bimsurfer/lib/jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.js"></script>
-  <script type="text/javascript" src="./js/jq/jquery.tablesorter.js"></script>
-  <link rel="stylesheet" href="./bimsurfer/lib/jquery-ui-1.10.3.custom/css/custom-theme/jquery-ui-1.10.3.custom.css" type="text/css">
+  <script type="text/javascript" src="./js/lib/jquery.tablesorter.js"></script>
+
+  <!-- Scripts below are intended for development setup -->  
+  <!--
+  <script type="text/javascript">
+  	var require = {
+  	    baseUrl: ".",
+  	    paths: {
+  	    	"app": "js/app",
+  	        "dojo": "js/dojo",
+  	        "dijit": "js/dijit",
+  	        "dojox": "js/dojox",
+  	        "put-selector": "js/put-selector"
+  	    }
+  	}
+  </script>
+  <script type="text/javascript" data-main="js/app/main" src="./js/require.js"></script>
+  -->
+  
+  <!-- Scripts below are intended for deployment setup -->
+  <script type="text/javascript" src="./js/built/dojo/dojo.js.uncompressed.js"></script>
+  <script type="text/javascript" src="./js/built/scenejsPluginDeps/canvas2image.js"></script>
+  <script type="text/javascript"> 
+  	require(["app/app"], function(app) { app.start(); }); 
+  	require.config = function() {};
+  </script>
+  <!-- End of conditional scripts -->
+  
   <script type="text/javascript" src="./bimsurfer/lib/scenejs-3.2/scenejs.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/BIMSURFER.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/SceneJS.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/Constants.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/ProgressLoader.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/Types/Light.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/Types/Light/Ambient.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/Types/Light/Sun.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/Control.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/Control.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/Control/ClickSelect.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/Control/LayerList.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/Control/ProgressBar.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/Control/PickFlyOrbit.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/Control/ObjectTreeView.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/Events.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/StringView.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/GeometryLoader.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/AsyncStream.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/DataInputStream.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/Viewer.js"></script>
+  <script type="text/javascript" src="./bimsurfer/api/Util.js"></script>
+  
+  <link rel="stylesheet" href="./bimsurfer/lib/jquery-ui-1.10.3.custom/css/custom-theme/jquery-ui-1.10.3.custom.css" type="text/css">
   <link rel="stylesheet" href="./bimviews/css/bootstrap.min.css" type="text/css">
   <link rel="stylesheet" href="./bimviews/css/bootstrap-vert-tabs.css" type="text/css">
   <link rel="stylesheet" href="./css/main.css" type="text/css">
+  
 </head>
 
 <body class='loading'>
@@ -106,7 +156,7 @@
       <form class="projectsForm">
         <legend>Select your project</legend>
 
-        <table class="projectsTable table table-striped table-hover">
+        <table class="projectsTable table table-hover">
           <thead>
             <tr>
               <th>Name</th>
@@ -144,13 +194,11 @@
 
         <div id='bcIssues' data-dojo-type='dijit/layout/BorderContainer' data-dojo-props="region: 'center', gutters: false, liveSplitters:true">
           <div data-dojo-type='dijit/layout/ContentPane' class="unfilteredList" data-dojo-props="region: 'center', splitter: true" id="cpIssues">
-            <h1 class='issue_header'><span id='issueCount'></span> Issues</h1>
+            <h1 class='issue_header'>Issues (<span id='issueCount'></span>)</h1>
 
-            <div class="col-lg-offset-2 col-lg-10">
-              <button id="addIssueButton" type="button" class="btn btn-primary">Add issue</button>
-            </div>
+            <button id="addIssueButton" type="button" class="btn btn-primary">Add issue</button>
 
-            <div data-dojo-type="dijit/form/DropDownButton" class="btn btn-default" id="filterButton" style="margin-left:15px">
+            <div data-dojo-type="dijit/form/DropDownButton" class="btn btn-default" id="filterButton">
               <span class="btn btn-default">Filter</span>
 
               <div id="filterMenu" data-dojo-type="dijit/TooltipDialog"></div>
@@ -167,6 +215,8 @@
             <table id="issuesTable" class="issuesTable table table-hover">
               <thead>
                 <tr>
+                  <th class='thumbnailCell'>&nbsp;</th>
+                 
                   <th>Title</th>
 
                   <th>Assignee</th>
@@ -190,7 +240,7 @@
           </div>
 
           <div data-dojo-type='dijit/layout/ContentPane' data-dojo-props="region: 'bottom', splitter: true" id="cpIssueComments">
-            <legend>Comments</legend>
+            <h1 class="issue_header comment_header">Comments</h1>
 
             <table id="commentsTable" class="table">
               <thead>
@@ -209,11 +259,11 @@
 
               <tbody id='commentsBody'></tbody>
             </table>
+            
+            <h1 class="issue_header add_comment_header">Add comment</h1>
 
             <div class="form">
               <form id="addCommentForm" class="commentForm form-horizontal">
-                <legend>Add comment</legend>
-
                 <div class="commentDiv form-group">
                   <label class="col-lg-2 control-label" for="inputServer">Comment</label>
 
@@ -242,7 +292,7 @@
 
                 <div class="form-group">
                   <div class="col-lg-offset-2 col-lg-10">
-                    <input id="addCommentButton" type="submit" class="btn btn-primary" value="Add">
+                    <input id="addCommentButton" type="submit" class="btn btn-primary" value="Add comment">
                   </div>
                 </div>
               </form>

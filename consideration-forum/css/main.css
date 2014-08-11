@@ -13,11 +13,12 @@ html, body {
 }
 
 .dijitSplitter {
-    border: solid 1px #eee;
+    border: solid 1px #ccc;
+    background: #eee;
 }
 
-.dijitSplitterHover {
-    border-color: #ccc;
+.dijitSplitterHover, .dijitSplitterActive {
+    background: #ccc;
 }
 
 .dijitSplitterH {
@@ -86,7 +87,8 @@ form.loginForm.logout #loginButtonContainer {
 }
 
 tbody tr.selected td {
-    background-color: #ddd !important;
+    background-color: #428bca !important;
+    color: white;
 }
 
 #timeline {
@@ -173,20 +175,34 @@ div#layer_list .BIMSURFER-Control-LayerList-ifcType-Name {
     font-weight: 100;
 }
 
+tbody tr:last-child td {
+    border-bottom: solid 1px #eee;
+}
+
 h1.issue_header {
     display: block;
-    padding: 18px 0 0 8px;
-    margin: 0 120px 20px 0;
+    padding: 17px 0 16px 52px;
+    margin: 0;
     font-size: 21px;
     font-weight: 100;
-    color: #333;
+    color: #428bca;
     border: 0;
     border-bottom: 1px solid #e5e5e5;
+    background: url(../img/issue_heading.png) no-repeat 1px 2px;
+}
+
+h1.comment_header {
+    background-image: url(../img/comments_heading.png);
+    border: none;
+}
+
+h1.add_comment_header {
+    background-image: url(../img/add_comment_heading.png);
+    margin: -20px 0 16px 0;
 }
 
 #addIssueButton {
-    float: right;
-    margin-top: -45px;
+    margin: 15px;
 }
 
 .dijitDialog {
@@ -218,14 +234,14 @@ h1.issue_header {
     width: 500px;
 }
 
-#addIssueSubmitButton, #addCommentButton {
-    width: 200px !important;
-    margin: 0 0 0 275px;
-    display: block;
+#addCommentForm .form-control {
+    font-size: 11px;
 }
 
-#addCommentButton {
-    margin-left: 300px;
+#addIssueSubmitButton, #addCommentButton {
+    width: 120px !important;
+    margin: 0 0 0 380px;
+    display: block;
 }
 
 .dijitDialogPaneContent legend {
@@ -256,6 +272,9 @@ h1.issue_header {
 #viewpointData,
 #guidData {
     font-size: 80%;
+}
+
+#guidData {
     margin: -10px 0 6px 20px;
 }
 
@@ -277,11 +296,19 @@ h1.issue_header {
     cursor: pointer;
 }
 
+.RevisionList .revision.selected {
+    color: #428bca;
+}
+
 .RevisionList .number {
     display: inline-block;
     background: url('../img/up.png') no-repeat center 2px;
     font-size: 300%;
     padding-top: 10px;
+}
+
+.RevisionList .selected .number {
+    background-image: url('../img/up_blue.png');
 }
 
 .RevisionList .id {
@@ -295,7 +322,7 @@ h1.issue_header {
 }
 
 .RevisionList .date {
-    color: #888;
+    opacity: 0.5;
 }
 
 .RevisionList .pointerContainer {
@@ -342,9 +369,11 @@ h1.issue_header {
     opacity: 0.3;
     z-index: 99999;
     box-shadow: black 0px 0px 10px;
+    pointer-events: none;
 }
 
 .hide_children div,
+.hide_children button,
 .hide_children span,
 .hide_children h1,
 .hide_children table {
@@ -373,7 +402,8 @@ div#loginButtonContainer {
 
 .gfxContainer {
     position: absolute;
-    top: 128px;
+    top: 0px;
+    z-index: 100;
 }
 
 .dijitTooltip {
@@ -386,6 +416,17 @@ div#loginButtonContainer {
 }
 
 .dijitTooltipContainer {
+    border: solid 1px #357ebd;
+    background: #428bca;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 4px;
+}
+
+.dijitTooltipContainer .date {
+    display: block;
+    font-size: 80%;
+    opacity: 0.5;
 }
 
 .dijitTooltipConnector {
@@ -484,4 +525,42 @@ tbody#issuesBody td.ncomments:after {
 
 td.ncomments {
     min-width: 50px;
+}
+
+#revisionList {
+    background: url(../img/revisions_heading.png) no-repeat 2px 0;
+}
+
+#cpIssues, #cpIssueComments {
+    font-size: 80%;
+}
+
+table thead tr th {
+    border: 0px solid #ddd !important;
+    border-width: 1px 0 1px 0 !important;
+    background: #eee !important;
+}
+
+polyline {
+    pointer-events: none;
+}
+
+#viewpointThumbnail {
+    float: left;
+    width: 64px;
+    height: 64px;
+    border: solid 1px #eee;
+    border-radius: 4px;
+    margin: -10px 10px 10px 0;
+}
+
+th.thumbnailCell {
+    pointer-events: none;
+}
+
+td.thumbnailCell img {
+    width: 32px;
+    height: 32px;
+    border: solid 1px #ddd;
+    border-radius: 4px;
 }
