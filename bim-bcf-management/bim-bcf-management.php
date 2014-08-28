@@ -50,7 +50,7 @@ class BIM_BCF_Management {
 	 * Self Upgrade Values
 	 */
 	// Base URL to the remote upgrade API Manager server. If not set then the Author URI is used.
-	public $upgrade_url = 'http://localhost/toddlahman/';
+	public $upgrade_url = 'http://shop.opensourcebim.org/';
 
 	/**
 	 * @var string
@@ -102,7 +102,7 @@ class BIM_BCF_Management {
 
 	public $ame_options;
 	public $ame_plugin_name;
-	public $ame_product_id;
+	public $ame_product_id = 'BIM BCF Management';
 	public $ame_renew_license_url;
 	public $ame_instance_id;
 	public $ame_domain;
@@ -154,7 +154,7 @@ class BIM_BCF_Management {
 			$this->ame_data_key = 'bim_bcf_management';
 			$this->ame_api_key = 'api_key';
 			$this->ame_activation_email = 'activation_email';
-			$this->ame_product_id_key = 'bim_bcf_management_product_id';
+			$this->ame_product_id_key = 'bim_bcf_management_key';
 			$this->ame_instance_key = 'bim_bcf_management_instance';
 			$this->ame_deactivate_checkbox_key = 'bim_bcf_management_deactivate_checkbox';
 			$this->ame_activated_key = 'bim_bcf_management_activated';
@@ -176,7 +176,7 @@ class BIM_BCF_Management {
 			$this->ame_options = get_option( $this->ame_data_key );
 			$this->ame_plugin_name = untrailingslashit( plugin_basename( __FILE__ ) ); // same as plugin slug. if a theme use a theme name like 'twentyeleven'
 			$this->ame_product_id = get_option( $this->ame_product_id_key ); // Software Title
-			$this->ame_renew_license_url = 'http://localhost/toddlahman/my-account'; // URL to renew a license. Trailing slash in the upgrade_url is required.
+			$this->ame_renew_license_url = 'http://shop.opensourcebim.org/'; // URL to renew a license. Trailing slash in the upgrade_url is required.
 			$this->ame_instance_id = get_option( $this->ame_instance_key ); // Instance ID (unique to each blog activation)
 			$this->ame_domain = site_url(); // blog domain name
 			$this->ame_software_version = $this->version; // The software version
