@@ -55,7 +55,7 @@ class BIM_BCF_Management {
 	/**
 	 * @var string
 	 */
-	public $version = '1.0';
+	public $version = '0.4';
 
 	/**
 	 * @var string
@@ -1287,6 +1287,9 @@ if ( get_option( 'bim_bcf_management_activated' ) == 'Activated' ) {
 					}
 					if( isset( $jsonIssue[ 'markup' ][ 'Header' ] ) && isset( $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ] ) && is_array( $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ] ) ) {
 						$bimservers = Array();
+						if( isset( $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ][ '@attributes' ] ) ) {
+							$jsonIssue[ 'markup' ][ 'Header' ][ 'File' ] = Array( $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ] );
+						}
 						foreach( $jsonIssue[ 'markup' ][ 'Header' ][ 'File' ] as $key => $file ) {
 							if( !isset( $file[ 'bimserver' ] ) ) {
 								$jsonIssue[ 'markup' ][ 'Header' ][ 'File' ][$key][ 'bimserver' ] = '';
