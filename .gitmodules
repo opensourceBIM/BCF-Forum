@@ -10,3 +10,15 @@
 [submodule "dijit"]
 	path = consideration-forum/js/dijit
 	url = git://github.com/dojo/dijit
+[submodule "bim-bcf-management/consideration-forum/bimsurfer"]
+	path = bim-bcf-management/consideration-forum/bimsurfer
+	url = git://github.com/opensourceBIM/BIMsurfer
+[submodule "bim-bcf-management/consideration-forum/js/dojo"]
+	path = bim-bcf-management/consideration-forum/js/dojo
+	url = git://github.com/dojo/dojo
+[submodule "bim-bcf-management/consideration-forum/js/put-selector"]
+	path = bim-bcf-management/consideration-forum/js/put-selector
+	url = git://github.com/kriszyp/put-selector
+[submodule "bim-bcf-management/consideration-forum/js/dijit"]
+	path = bim-bcf-management/consideration-forum/js/dijit
+	url = git://github.com/dojo/dijit
