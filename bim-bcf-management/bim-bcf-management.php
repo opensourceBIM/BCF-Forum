@@ -2,7 +2,7 @@
 /*
 Plugin Name: BIM BCF Management
 Plugin URI:
-Description: Adds BCF 2.0 issue management to WordPress, upload zip archives with issues or add them through a form and keep track of your issues and their details.
+Description: Adds BCF 2.0 issue management to WordPress, upload zip archives with issues or add them through a form and keep track of your issues and their details. Available shortcodes: Using shortcodes: [showIssues], [showMyIssues], [showIssue], [showAddZipForm], [showAddIssueForm] and [showBCFViewer]
 Version: 1.0
 Author: Bastiaan Grutters
 Author URI: http://www.bastiaangrutters.nl
@@ -13,6 +13,7 @@ Using shortcodes:
 [showIssue]
 [showAddZipForm]
 [showAddIssueForm]
+[showBCFViewer]
 
 Or using php functions in templates:
 <?php
@@ -395,6 +396,7 @@ if ( get_option( 'bim_bcf_management_activated' ) == 'Activated' ) {
 			add_shortcode( 'showIssue', Array( 'BIMBCFManagement', 'showIssue' ) );
 			add_shortcode( 'showAddZipForm', Array( 'BIMBCFManagement', 'showAddZipForm' ) );
 			add_shortcode( 'showAddIssueForm', Array( 'BIMBCFManagement', 'showAddIssueForm' ) );
+			add_shortcode( 'showBCFViewer', Array( 'BIMBCFManagement', 'showBCFViewer' ) );
 		}
 	
 		public static function wordPressInit() {
@@ -495,9 +497,8 @@ if ( get_option( 'bim_bcf_management_activated' ) == 'Activated' ) {
 						$projects = BIMsie::getProjects( $_POST[ 'bimsie' ] );
 					}
 				}
-	
+				$options = BIMBCFManagement::getOptions();
 				if( isset( $projects ) && $projects !== false ) {
-					$options = BIMBCFManagement::getOptions();
 					$projects = BIMsie::getHierarchicalProjects( $projects );
 	?>
 					<h3><?php _e( 'Bimsie server', 'bim-bcf-management' ); ?>: <?php print( $server ); ?></h3>
@@ -592,6 +593,7 @@ if ( get_option( 'bim_bcf_management_activated' ) == 'Activated' ) {
 	?>
 						<input type="submit" value="<?php _e( 'View', 'bim-bcf-management' ); ?>" />
 					</form>
+					<a class="button bcf-viewer-link" href="<?php print( get_bloginfo( 'wpurl' ) . $options[ 'bcf_viewer_uri' ] . '?server=' . $key ); ?>"><?php _e( 'BCF Viewer', 'bim-bcf-management' ); ?></a>
 					<div class="forget-bimserver">
 						<form method="post" action="">
 							<input type="hidden" name="bimsie" value="<?php print( $bimsieServer[ 'uri' ] ); ?>" />
@@ -2165,8 +2167,11 @@ if ( get_option( 'bim_bcf_management_activated' ) == 'Activated' ) {
 		}
 	
 		public static function enqueueScripts() {
+			wp_enqueue_style( 'bimsurfer-jquery', plugins_url( '/consideration-forum/bimsurfer/lib/jquery-ui-1.10.3.custom/css/custom-theme/jquery-ui-1.10.3.custom.css', __FILE__ ) );
+			wp_enqueue_style( 'bimviews-bootstrap', plugins_url( '/consideration-forum//bimviews/css/bootstrap.min.css', __FILE__ ) );
+			wp_enqueue_style( 'bimviews-bootstrap-vert-tabs', plugins_url( '/consideration-forum/bimviews/css/bootstrap-vert-tabs.css', __FILE__ ) );
+			wp_enqueue_style( 'bimsurfer-jquery', plugins_url( '/consideration-forum/css/main.css' , __FILE__ ) );
 			wp_enqueue_style( 'bim-bcf-management', plugins_url( '/bim-bcf-management.css' , __FILE__ ) );
-			// TODO: maybe I should only add this on certain pages and not everywhere? Think about it!
 			wp_enqueue_script( 'bim-bcf-management', plugins_url( '/bim-bcf-management.js' , __FILE__ ), Array( 'jquery' ), '1.0.0', true );
 		}
 	
@@ -2527,7 +2532,305 @@ if ( get_option( 'bim_bcf_management_activated' ) == 'Activated' ) {
 			}
 			return $comments;
 		}
-	
+		
+		public static function showBCFViewer() {
+			$bcfViewerSettings = Array(
+				'basePath' => plugins_url( 'consideration-forum/', __FILE__ ),
+				'bcfServerUser' => false,
+				'bcfServerPassword' => false,
+				'bimServer' => false,
+				'bimServerUser' => false,
+				'bimServerPassword' => false
+			);
+			if( is_user_logged_in() ) {
+				$user = get_user_by( 'id', get_current_user_id() );
+				//var_dump( $user );
+				$bcfViewerSettings[ 'bcfServerUser' ] = $user->data->user_login;
+				$bcfViewerSettings[ 'bcfServerPassword' ] = $user->data->user_pass;
+				if( isset( $_GET[ 'server' ] ) && ctype_digit( '' . $_GET[ 'server' ] ) ) {
+					$server = BIMsie::getServerById( $_GET[ 'server' ] );
+					$bcfViewerSettings[ 'bimServer' ] = $server[ 'uri' ];
+					if( isset( $server[ 'username' ] ) ) {
+						$bcfViewerSettings[ 'bimServerUser' ] = $server[ 'username' ];
+					}
+					if( isset( $server[ 'password' ] ) ) {
+						$bcfViewerSettings[ 'bimServerPassword' ] = $server[ 'password' ];
+					}
+				}
+			}
+?>
+  <div id='supermain' data-dojo-type='dijit/layout/TabContainer'>
+    <div data-dojo-type='dijit/layout/ContentPane' title="Select Server" id="cpLogin">
+      <div class="header"></div>
+
+      <div class="form">
+        <form id="loginForm" class="loginForm form-horizontal login">
+          <legend>BIMserver credentials</legend>
+
+          <div class="serverAddressDiv form-group">
+            <label class="col-lg-2 control-label" for="inputServer">Server</label>
+
+            <div class="col-lg-8">
+              <div class="input-group">
+                <span class="input-group-addon">http://</span> <input type="text" name="bimServerAddress" id="inputServer" class="form-control" placeholder="BIMserver">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="col-lg-2 control-label" for="inputEmail">Username</label>
+
+            <div class="col-lg-8">
+              <div class="input-group">
+                <span class="input-group-addon">@</span> <input type="email" name="bimServerUser" class="form-control username" id="inputEmail" placeholder="Username (e-mail address)">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="col-lg-2 control-label" for="inputPassword">Password</label>
+
+            <div class="col-lg-8">
+              <div class="input-group">
+              	<span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
+                <input type="password" name="bimServerPassword" class="form-control password" id="inputPassword" placeholder="Password">
+              </div>
+            </div>
+          </div><legend>BCFserver credentials</legend>
+
+          <div class="serverAddressDiv form-group">
+            <label class="col-lg-2 control-label" for="inputServer2">Server</label>
+
+            <div class="col-lg-8">
+              <div class="input-group">
+                <span class="input-group-addon">http://</span> <input type="text" name="bcfServerAddress" id="inputServer2" class="form-control" placeholder="BCFserver">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="col-lg-2 control-label" for="inputEmail2">Username</label>
+
+            <div class="col-lg-8">
+              <div class="input-group">
+                <span class="input-group-addon">@</span> <input type="email" name="bcfServerUser" class="form-control username" id="inputEmail2" placeholder="Username (e-mail address)">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="col-lg-2 control-label" for="inputPassword2">Password</label>
+
+            <div class="col-lg-8">
+              <div class="input-group">
+                <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
+                <input type="password" name="bcfServerPassword" class="form-control password" id="inputPassword2" placeholder="Password">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group" id="loginButtonContainer">
+            <div class="col-lg-offset-2 col-lg-10">
+              <input id="loginButton" type="submit" class="btn loginButton btn-primary" value="Sign in">
+            </div>
+          </div>
+
+          <div class="form-group" id="logoutButtonContainer">
+            <div class="col-lg-offset-2 col-lg-10">
+              <input id="logoutButton" type="reset" class="btn loginButton btn-primary" value="Sign out">
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div data-dojo-type='dijit/layout/ContentPane' title='Select Project' disabled='disabled' id='cpProjects'>
+      <form class="projectsForm">
+        <legend>Select your project</legend>
+
+        <table class="projectsTable table table-hover">
+          <thead>
+            <tr>
+              <th>Name</th>
+
+              <th>Sub Projects</th>
+
+              <th>Revisions</th>
+            </tr>
+          </thead>
+
+          <tbody id='projectsBody'></tbody>
+        </table>
+      </form>
+    </div>
+
+    <div data-dojo-type='dijit/layout/ContentPane' title='View Model' disabled='disabled' id='cpView'>
+      <div id='main' data-dojo-type='dijit/layout/BorderContainer' data-dojo-props="gutters: false, liveSplitters:true" title="View">
+        <div data-dojo-type='dijit/layout/BorderContainer' data-dojo-props="region: 'left', splitter: true, liveSplitters: true" style='width:60%'>
+          <div data-dojo-type='dijit/layout/ContentPane' data-dojo-props="region: 'top', splitter: true" style='height:80%' id='cpViewer'>
+            <div id='viewport' class='viewer' style='width:100%;height:100%;'></div>
+
+            <div id="layer_list">
+              <h2>Layers</h2>
+
+              <div class="data"></div>
+            </div>
+
+            <div id="loadingPercentage" class='loading'>
+              0%
+            </div>
+          </div>
+
+          <div data-dojo-type='RevisionList' data-dojo-props="region: 'center', splitter: true" id="revisionList"></div>
+        </div>
+
+        <div id='bcIssues' data-dojo-type='dijit/layout/BorderContainer' data-dojo-props="region: 'center', gutters: false, liveSplitters:true">
+          <div data-dojo-type='dijit/layout/ContentPane' class="unfilteredList" data-dojo-props="region: 'center', splitter: true" id="cpIssues">
+            <h1 class='issue_header'>Issues (<span id='issueCount'></span>)</h1>
+
+            <button id="addIssueButton" type="button" class="btn btn-primary">Add issue</button>
+
+            <div data-dojo-type="dijit/form/DropDownButton" class="btn btn-default" id="filterButton">
+              <span class="btn btn-default">Filter</span>
+
+              <div id="filterMenu" data-dojo-type="dijit/TooltipDialog"></div>
+            </div>
+
+            <div id="clearFilterButtonContainer">
+              <div class="col-lg-3">
+                <button id="clearFilterButton" type="button" class="btn btn-default">Show all</button>
+              </div>
+
+              <div class="col-lg-7" id="filterText"></div>
+            </div>
+
+            <table id="issuesTable" class="issuesTable table table-hover">
+              <thead>
+                <tr>
+                  <th class='thumbnailCell'>&nbsp;</th>
+                 
+                  <th>Title</th>
+
+                  <th>Assignee</th>
+
+                  <th>Label</th>
+
+                  <th>Status</th>
+
+                  <th>Type</th>
+
+                  <th>Priority</th>
+
+                  <th class='date'>Date</th>
+
+                  <th class='ncomments'>&nbsp;</th>
+                </tr>
+              </thead>
+
+              <tbody id='issuesBody'></tbody>
+            </table>
+          </div>
+
+          <div data-dojo-type='dijit/layout/ContentPane' data-dojo-props="region: 'bottom', splitter: true" id="cpIssueComments">
+            <h1 class="issue_header comment_header">Comments</h1>
+
+            <table id="commentsTable" class="table">
+              <thead>
+                <tr>
+                  <th>Author</th>
+
+                  <th>Comment</th>
+
+                  <th>Topic Status</th>
+
+                  <th>Priority</th>
+
+                  <th>Date</th>
+                </tr>
+              </thead>
+
+              <tbody id='commentsBody'></tbody>
+            </table>
+            
+            <h1 class="issue_header add_comment_header">Add comment</h1>
+
+            <div class="form">
+              <form id="addCommentForm" class="commentForm form-horizontal">
+                <div class="commentDiv form-group">
+                  <label class="col-lg-2 control-label" for="inputServer">Comment</label>
+
+                  <div class="col-lg-8">
+                    <input type="text" name="commentText" id="inputCommentText" class="form-control" placeholder="Comment">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="col-lg-2 control-label" for="addCommentPriority">Priority</label>
+
+                  <div class="col-lg-8">
+                    <select id='addCommentPriority' name='Priority' class='form-control'>
+                      </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="col-lg-2 control-label" for="addCommentTopicStatus">Topic Status</label>
+
+                  <div class="col-lg-8">
+                    <select id='addCommentTopicStatus' name='TopicStatus' class='form-control'>
+                      </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <div class="col-lg-offset-2 col-lg-10">
+                    <input id="addCommentButton" type="submit" class="btn btn-primary" value="Add comment">
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/js/lib/moment.min.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/lib/jquery-1.10.2/jquery-1.10.2.min.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/lib/jquery-1.10.2/jquery.cookie.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/lib/jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/js/lib/jquery.tablesorter.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/js/built/dojo/dojo.js.uncompressed.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/js/built/scenejsPluginDeps/canvas2image.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript"> 
+  	require(["app/app"], function(app) { app.start(); }); 
+  	require.config = function() {};
+  </script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/lib/scenejs-3.2/scenejs.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/api/BIMSURFER.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/api/SceneJS.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/api/Constants.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/api/ProgressLoader.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/api/Types/Light.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/api/Types/Light/Ambient.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/api/Types/Light/Sun.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/api/Control.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/api/Control/ClickSelect.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/api/Control/LayerList.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/api/Control/ProgressBar.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/api/Control/PickFlyOrbit.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/api/Control/ObjectTreeView.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/api/Events.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/api/StringView.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/api/GeometryLoader.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/api/AsyncStream.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/api/DataInputStream.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/api/Viewer.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript" src="<?php print( plugins_url( 'consideration-forum/bimsurfer/api/Util.js', __FILE__ ) ); ?>"></script>
+  <script type="text/javascript">
+	var considerationForumSettings = <?php print( json_encode( $bcfViewerSettings ) ); ?>;
+  </script>
+<?php
+		} 
 	}
 	
 	$bimBCFManagement = new BIMBCFManagement();

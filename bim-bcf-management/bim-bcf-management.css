@@ -107,3 +107,10 @@ body {
 	line-height: 50px;
 	text-align: right;
 }
+
+.bcf-viewer-link {
+	position: absolute;
+	bottom: 5px;
+	left: 140px;
+	line-height: 15px;
+}

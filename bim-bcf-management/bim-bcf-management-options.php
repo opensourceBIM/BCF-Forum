@@ -11,7 +11,12 @@ if( isset( $_POST['action'] ) ) {
 		$wpurl = get_bloginfo( 'wpurl' );
 		$options[ 'issue_details_uri' ] = str_replace( $wpurl, '', $permalink );
 	}
-
+	if( isset( $options[ 'bcf_viewer_page' ] ) && $options[ 'bcf_viewer_page' ] != -1 ) {
+		$permalink = get_permalink( $options[ 'bcf_viewer_page' ] );
+		$wpurl = get_bloginfo( 'wpurl' );
+		$options[ 'bcf_viewer_uri' ] = str_replace( $wpurl, '', $permalink );
+	}
+	
 	update_option( 'bim_bcf_management_options', $options );
 	$bimBCFManagementOptions = BIMBCFManagement::getOptions( true );
 
@@ -174,8 +179,6 @@ $pages = get_posts( Array(
 						<option value="<?php print( $page->ID ); ?>"<?php print( ( isset( $bimBCFManagementOptions[ 'issue_page' ] ) && $bimBCFManagementOptions[ 'issue_page' ] == $page->ID ? ' selected' : '' ) ); ?>>
 							<?php print( $page->post_title ); ?>
                     	</option>
-
-
 <?php
    }
 ?>
@@ -191,9 +194,35 @@ $pages = get_posts( Array(
 				</td>
 			</tr>
 			<tr valign="top">
+				<td><label for="bcf-viewer-page">BCF Viewer Page</label>
+				</td>
+				<td>
+					<select name="bim_bcf_management_options[bcf_viewer_page]" id="bcf-viewer-page">
+						<option value="-1"><?php _e( 'Custom URI', 'bim-bcf-management' ); ?></option>
+<?php
+	foreach( $pages as $page ) {
+?>
+						<option value="<?php print( $page->ID ); ?>"<?php print( ( isset( $bimBCFManagementOptions[ 'bcf_viewer_page' ] ) && $bimBCFManagementOptions[ 'bcf_viewer_page' ] == $page->ID ? ' selected' : '' ) ); ?>>
+							<?php print( $page->post_title ); ?>
+                    	</option>
+<?php
+   }
+?>
+				   </select>
+				   <p class="description"><?php _e( 'Page which displays the BCF viewer', 'bim-bcf-management' ); ?></p>
+				</td>
+			</tr>
+			<tr valign="top">
+				<td><label for="issue-details-uri">BCF Viewer URI</label></td>
+				<td>
+					<input type="text" id="issue-details-uri" name="bim_bcf_management_options[issue_details_uri]" value="<?php print( isset( $bimBCFManagementOptions[ 'bcf_viewer_uri' ] ) ? $bimBCFManagementOptions[ 'bcf_viewer_uri' ] : '' ); ?>" />
+					<p class="description"><?php _e( 'Set the URL relative to the site root for the BCF viewer, or select the page from the list above', 'bim-bcf-management' ); ?></p>
+				</td>
+			</tr>
+			<tr valign="top">
 				<td><label for="topic-types">Topic types</label></td>
 				<td>
-					<input type="text" id="issue-details-uri" name="bim_bcf_management_options[topic_types]" value="<?php print( isset( $bimBCFManagementOptions[ 'topic_types' ] ) ? stripslashes( $bimBCFManagementOptions[ 'topic_types' ] ) : '' ); ?>" />
+					<input type="text" id="topic-types" name="bim_bcf_management_options[topic_types]" value="<?php print( isset( $bimBCFManagementOptions[ 'topic_types' ] ) ? stripslashes( $bimBCFManagementOptions[ 'topic_types' ] ) : '' ); ?>" />
 					<p class="description"><?php _e( 'Comma seperated list of topic types, used in the site and to generate extensions.xsd', 'bim-bcf-management' ); ?></p>
 				</td>
 			</tr>
