@@ -17,8 +17,9 @@ $supportedCalls = Array(
 		'addIssue' => Array( 'issue' ),
 		'getExtensions' => Array(),
 		'addComment' => Array( 'issueGuid', 'comment' ),
-		'getComments' => Array( 'bimsieUrl' )
-	)
+		'getComments' => Array( 'bimsieUrl' ),
+		'authenticateWithToken' => Array( 'token' )
+	),
 );
 
 $input = file_get_contents( 'php://input' );
@@ -218,7 +219,22 @@ if( isset( $request ) ) {
 						$invalid = true;
 						$errorType = 'UserException';
 						$errorMessage = __( 'Invalid token', 'bim-bcf-management' );
-					}					
+											}					
+				} elseif( $request[ 'request' ][ 'method' ] == 'authenticateWithToken' ) {
+					if( !isset( $request[ 'request' ], $request[ 'request' ][ 'parameters' ], $request[ 'request' ][ 'parameters' ][ 'token' ] ) || strlen( $request[ 'request' ][ 'parameters' ][ 'token' ] ) < 32 ) {
+						$invalid = true;
+						$errorType = 'UserException';
+						$errorMessage = __( 'Invalid token', 'bim-bcf-management' );
+					} else {
+						$tokenValues = BIMBCFManagement::authenticateWithToken( $request[ 'request' ][ 'parameters' ][ 'token' ] );
+						if( $tokenValues[ 'error' ] ) {
+							$invalid = true;
+							$errorType = $tokenValues[ 'errorType' ];
+							$errorMessage = $tokenValues[ 'errorMessage' ];
+						} else {
+							$result = $tokenValues[ 'result' ];
+						}
+					}
 				}
 			}
 		} else {
