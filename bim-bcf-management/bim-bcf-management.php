@@ -2527,9 +2527,7 @@ if ( get_option( 'bim_bcf_management_activated' ) == 'Activated' ) {
 				if( !isset( $markups[$commentPostId->comment_post_ID] ) ) {
 					$markups[$commentPostId->comment_post_ID] = get_post_meta( $commentPostId->comment_post_ID, 'markup', true );
 				}
-	
 				$comments[] = array_pop( $markups[$commentPostId->comment_post_ID][ 'Comment' ] );
-	
 			}
 			return $comments;
 		}
@@ -2569,14 +2567,14 @@ if ( get_option( 'bim_bcf_management_activated' ) == 'Activated' ) {
 			} else {
 				$userId = $wpdb->get_var( $wpdb->prepare( "SELECT user_id
 					FROM {$wpdb->usermeta}
-					WHERE meta_key LIKE '_bcf_viewer_token_%%' AND meta_value = %s", $token ) );
+					WHERE meta_key LIKE '_bcf_viewer_token_%%' AND meta_value COLLATE utf8_bin LIKE %s", $token ) );
 				if( $userId != '' ) {
 					$timestamp = get_user_meta( $userId, '_bcf_viewer_timestamp',true );
 					if( $timestamp > time() ) {
 						// Token is valid
 						$serverId = $wpdb->get_var( $wpdb->prepare( "SELECT meta_key
 							FROM {$wpdb->usermeta}
-							WHERE meta_key = '_bcf_viewer_token_%' AND meta_value = %s AND user_id = %d", $token, $userId ) );
+							WHERE meta_key = '_bcf_viewer_token_%' AND meta_value COLLATE utf8_bin LIKE %s AND user_id = %d", $token, $userId ) );
 						$serverId = str_replace( '_bcf_viewer_token_', '', $serverId );
 						$server = BIMsie::getServerById( $serverId, $userId );
 						if( $server !== false ) {
