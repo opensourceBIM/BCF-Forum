@@ -2574,7 +2574,7 @@ if ( get_option( 'bim_bcf_management_activated' ) == 'Activated' ) {
 						// Token is valid
 						$serverId = $wpdb->get_var( $wpdb->prepare( "SELECT meta_key
 							FROM {$wpdb->usermeta}
-							WHERE meta_key = '_bcf_viewer_token_%' AND meta_value COLLATE utf8_bin LIKE %s AND user_id = %d", $token, $userId ) );
+							WHERE meta_key LIKE '_bcf_viewer_token_%%' AND meta_value COLLATE utf8_bin LIKE %s AND user_id = %d", $token, $userId ) );
 						$serverId = str_replace( '_bcf_viewer_token_', '', $serverId );
 						$server = BIMsie::getServerById( $serverId, $userId );
 						if( $server !== false ) {
