@@ -2585,6 +2585,7 @@ if ( get_option( 'bim_bcf_management_activated' ) == 'Activated' ) {
 								$token = BIMsie::updateTokenTimestamp( $userId, BIMSie::generateToken() );
 							}
 							$response[ 'result' ] = Array(
+								'bimserver_url' => $server[ 'uri' ],
 								'bimserver_username' => $server[ 'username' ],		
 								'bimserver_password' => $server[ 'password' ],
 								'bcfserver_token' => $token
