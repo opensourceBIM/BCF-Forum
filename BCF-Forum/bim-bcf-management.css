@@ -1,0 +1,116 @@
+@CHARSET "UTF-8";
+
+body {
+	position: relative;
+}
+
+.hidden {
+	display: none;
+}
+
+.clear {
+	clear: both;
+}
+
+#bim-bcf-management-overlay {
+	position: absolute;
+	width: 720px;
+	height: 480px;
+	border-radius: 5px;
+	box-shadow: #999 2px 2px 60px 15px;
+	border: 1px solid #888;
+	z-index: 9999;
+	background-color: #ffffff;
+	overflow: hidden;
+	font-family: arial;
+}
+
+#bim-bcf-management-overlay .title {
+	background-color: #999;
+	border-bottom: 1px solid #888;
+	line-height: 28px;
+	font-size: 16px;
+	font-weight: bold;
+	text-align: center;
+}
+
+#bim-bcf-management-overlay .status {
+	font-weight: bold;
+	padding: 10px 20px 5px;
+	color: #AE181D;
+}
+
+#bim-bcf-management-overlay .content {
+	padding: 5px 20px;
+}
+
+#bim-bcf-management-overlay .content label {
+	float: left;
+	width: 180px;
+	padding-right: 10px;
+	padding-bottom: 5px;
+}
+
+#bim-bcf-management-overlay .content label.wide-label {
+	float: none;
+	width: auto;
+	padding-right: 10px;
+	padding-bottom: 5px;
+}
+
+#bim-bcf-management-overlay .content input, #bim-bcf-management-overlay .content select {
+	margin-bottom: 5px;
+}
+
+#bim-bcf-management-overlay .loading-image {
+	padding-left: 10px;
+}
+
+#add-issue-form label {
+	float: left;
+	width: 191px;
+}
+
+#add-issue-form br {
+	clear: both;
+}
+
+#add-issue-form .sub-element {
+	border: 1px solid #efefef;
+	padding: 5px;
+	margin: 5px;
+	border-radius: 3px;
+}
+
+#add-issue-form .sub-element label {
+	width: 180px;
+} 
+
+.issue-table .even {
+	background-color: #efefef;
+}
+
+.bimsie-server-link {
+	position: relative;
+	border: 1px solid #efefef;
+	padding: 5px 10px;
+	margin-bottom: 10px;
+	border-radius: 3px;
+}
+
+.forget-bimserver {
+	position: absolute;
+	right: 10px;
+	bottom: 5px;
+	width: 120px;
+	height: 50px;
+	line-height: 50px;
+	text-align: right;
+}
+
+.bcf-viewer-link {
+	position: absolute;
+	bottom: 5px;
+	left: 140px;
+	line-height: 15px;
+}
