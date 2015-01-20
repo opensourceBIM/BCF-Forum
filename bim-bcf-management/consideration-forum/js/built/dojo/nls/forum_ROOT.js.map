@@ -1,0 +1,8 @@
+{
+"version":3,
+"file":"forum_ROOT.js",
+"lineCount":3,
+"mappings":"A;AAAAA,MAAA,wBACA,mBADA,iMACwQ,OADxQ,gDACiV,OADjV,KAGA,kBAHA;yBAGmR,OAHnR,gDAG4V,OAH5V;",
+"sources":["forum_ROOT.js.uncompressed.js"],
+"names":["define"]
+}

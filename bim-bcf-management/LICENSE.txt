@@ -1,4 +1,4 @@
-Copyright (C) 2014  ZEEP architects & Quinta engineers
+Copyright (C) 2015  Netherlands organisation TNO & Quinta engineers
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as

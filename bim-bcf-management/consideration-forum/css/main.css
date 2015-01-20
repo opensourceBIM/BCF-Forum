@@ -564,3 +564,13 @@ td.thumbnailCell img {
     border: solid 1px #ddd;
     border-radius: 4px;
 }
+
+#loginError {
+    margin: 0 0 15px 172px;
+    border: solid 1px #ccc;
+    padding: 6px 12px;
+    border-radius: 4px;
+    color: #b94a48;
+    width: 656px;
+    display: none;
+}
