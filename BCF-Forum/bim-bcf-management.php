@@ -1,11 +1,11 @@
 <?php
 /*
-Plugin Name: BIM BCF Management
-Plugin URI:
-Description: Adds BCF 2.0 issue management to WordPress, upload zip archives with issues or add them through a form and keep track of your issues and their details. Available shortcodes: Using shortcodes: [showIssues], [showMyIssues], [showIssue], [showAddZipForm], [showAddIssueForm] and [showBCFViewer]
-Version: 1.0
-Author: Bastiaan Grutters
-Author URI: http://www.bastiaangrutters.nl
+Plugin Name: BIM Collaboration Forum
+Plugin URI: https://github.com/opensourceBIM/BCF-Forum
+Description: Adds BCF 2.0 issue management to WordPress, upload zip archives with issues or add them through a form and keep track of your issues and their details. Available shortcodes: Using shortcodes: [showIssues], [showMyIssues], [showIssue], [showAddZipForm] and [showAddIssueForm]
+Version: 1.1
+Author: open source BIM collective
+Author URI: http://opensourcebim.org
 Usage:
 Using shortcodes:
 [showIssues]
@@ -13,14 +13,14 @@ Using shortcodes:
 [showIssue]
 [showAddZipForm]
 [showAddIssueForm]
-[showBCFViewer]
+
 
 Or using php functions in templates:
 <?php
 if( class_exists( 'BIMBCFManagement' ) ) {
 	// Show list of issues for this user
 	BIMBCFManagement::showMyIssues();
-	// Show list of issues accessible through Bimsie projects
+	// Show list of issues accessible through BIMSie projects
 	BIMBCFManagement::showIssues();
 	// Show details of the supplied issue's id if accessible for the current user
 	BIMBCFManagement::showIssue( $issueId );

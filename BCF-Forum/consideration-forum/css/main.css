@@ -423,6 +423,14 @@ div#loginButtonContainer {
     border-radius: 4px;
 }
 
+#filterMenu .dijitTooltipContainer {
+    border-color: #ccc;
+    border-radius: 0;
+    background: white;
+    color: black;
+    padding: 0;
+}
+
 .dijitTooltipContainer .date {
     display: block;
     font-size: 80%;
@@ -574,3 +582,4 @@ td.thumbnailCell img {
     width: 656px;
     display: none;
 }
+</wp-content/plugins/BCF-Forum/consideration-forum$ 

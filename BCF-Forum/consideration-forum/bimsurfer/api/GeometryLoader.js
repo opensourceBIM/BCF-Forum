@@ -116,6 +116,7 @@ function GeometryLoader(bimServerApi, models, viewer) {
 	
 	this.downloadInitiated = function(){
 		o.state = {
+			mode: 0,
 			nrObjectsRead: 0,
 			nrObjects: 0
 		};
@@ -134,10 +135,10 @@ function GeometryLoader(bimServerApi, models, viewer) {
 		
 		var msg = {
 			longActionId: o.topicId,
-			topicId: o.groupId
+			topicId: o.topicId
 		};
 		
-		o.bimServerApi.setBinaryDataListener(o.groupId, o.binaryDataListener);
+		o.bimServerApi.setBinaryDataListener(o.topicId, o.binaryDataListener);
 		o.bimServerApi.downloadViaWebsocket(msg);
 	};
 	
@@ -146,12 +147,16 @@ function GeometryLoader(bimServerApi, models, viewer) {
 	};
 	
 	this.processGeometry = function(roid, oid, geometryType, objectId, coreIds, type, transformationMatrix) {
+		if (o.state.mode == 0) {
+			console.log("Mode is still 0, should be 1");
+			return;
+		}
+		
 		o.models[roid].get(oid, function(object){
 			if (o.viewer.scene.findNode(objectId) != null) {
 				console.log("Node with id " + objectId + " already existed");
 				return;
 			}
-
 			var material = BIMSURFER.Constants.materials[type];
 			var hasTransparency = false;
 			if (material == null) {
@@ -280,6 +285,7 @@ function GeometryLoader(bimServerApi, models, viewer) {
 				fovy: 37.8493
 			});
 		}
+		o.state.mode = 1;
 		o.state.nrObjects = data.readInt();
 		o.updateProgress();
 //		console.log("Nr Objects", o.state.nrObjects);
@@ -305,10 +311,6 @@ function GeometryLoader(bimServerApi, models, viewer) {
 	
 	this.progressHandler = function(topicId, state){
 		if (topicId == o.topicId) {
-//			o.progressListeners.forEach(function(progressListener){
-//				progressListener(state.progress);
-//				o.viewer.SYSTEM.events.trigger('progressChanged', [state.progress]);
-//			});
 			if (state.title == "Done preparing") {
 				if (!o.prepareReceived) {
 					o.prepareReceived = true;
@@ -321,14 +323,12 @@ function GeometryLoader(bimServerApi, models, viewer) {
 		}
 	};
 
-	// Loads everything, but only show the types given in types
-	this.setLoadRevision = function(roid, types) {
-		o.options = {type: "revision", roid: roid, types: types};
+	this.setLoadRevision = function(roid) {
+		o.options = {type: "revision", roid: roid};
 	};
 	
-	// Only loads the given types
-	this.setLoadTypes = function(roid, types) {
-		o.options = {type: "types", roid: roid, types: types};
+	this.setLoadTypes = function(roid, schema, types) {
+		o.options = {type: "types", schema: schema, roid: roid, types: types};
 	};
 	
 	this.setLoadOids = function(roids, oids) {
@@ -346,12 +346,16 @@ function GeometryLoader(bimServerApi, models, viewer) {
 	this.start = function(){
 		if (o.options != null) {
 			if (o.options.type == "types") {
+				var types = o.options.types.map(function(type){
+					return type.name;
+				});
 				o.groupId = o.options.roid;
 				o.types = o.options.types;
 				o.bimServerApi.getMessagingSerializerByPluginClassName("org.bimserver.serializers.binarygeometry.BinaryGeometryMessagingSerializerPlugin", function(serializer){
 					o.bimServerApi.call("Bimsie1ServiceInterface", "downloadByTypes", {
 						roids: [o.options.roid],
-						classNames : o.options.types,
+						schema: o.options.schema,
+						classNames : types,
 						serializerOid : serializer.oid,
 						includeAllSubtypes : false,
 						useObjectIDM : false,

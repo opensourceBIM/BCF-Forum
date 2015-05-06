@@ -1,10 +1,10 @@
 === BIM Collaboration Forum ===
-Contributors: Bastiaan Grutters, Léon van Berlo
+Contributors: Bastiaan Grutters, LŽon van Berlo
 Donate link: http://opensourcebim.org/
 Tags: BIM, openBIM, BCF, BIM collaboration Format, BIM collaboration Forum
 Requires at least: 4.0
-Tested up to: 4.1.1
-Stable tag: 0.4.1
+Tested up to: 4.2.1
+Stable tag: 0.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,7 +32,7 @@ You need a BIMSie compliant server for IFC data (for example open source BIMserv
 
 == Frequently Asked Questions ==
 
-= Can I view the mmodel? =
+= Can I view the model? =
 
 Yes, this forum uses BIM Surfer for that.
 
@@ -49,6 +49,10 @@ No. We find it difficult to implement that API because it is build for tools tha
 1. A screenshot of the BCF forum.
 
 == Changelog ==
+
+= 1.1 = 
+* made compatible with bimserver 1.4 (prerelease)
+* trunked key activation; everything in the open now!
 
 = 0.4.1 = 
 * url handling bug fixed
