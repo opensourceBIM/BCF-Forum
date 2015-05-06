@@ -23,8 +23,7 @@ This project uses BIM Surfer (www.bimsurfer.org) and relies on BIMserver (www.bi
 
 Have a look at the wiki for more info: https://github.com/opensourceBIM/BimConsiderationForum-BcfServer/wiki
 
-Roadmap
+potential roadmap (when funding)
 =======
-- integrate BCF server and Forum into one Wordpress plugin --> Work in progress at this moment
 - integrate Forum as plugin in bimvie.ws
 - implement Buildingsmart BCF REST API 
