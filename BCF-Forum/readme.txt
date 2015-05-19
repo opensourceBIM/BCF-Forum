@@ -4,7 +4,7 @@ Donate link: http://opensourcebim.org/
 Tags: BIM, openBIM, BCF, BIM collaboration Format, BIM collaboration Forum
 Requires at least: 4.0
 Tested up to: 4.2.1
-Stable tag: 0.5
+Stable tag: 1.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,6 +49,9 @@ No. We find it difficult to implement that API because it is build for tools tha
 1. A screenshot of the BCF forum.
 
 == Changelog ==
+
+= 1.2 =
+* fixed visualisation bug
 
 = 1.1 = 
 * made compatible with bimserver 1.4 (prerelease)
