@@ -3,7 +3,7 @@
 Plugin Name: BIM Collaboration Forum
 Plugin URI: https://github.com/opensourceBIM/BCF-Forum
 Description: Adds BCF 2.0 issue management to WordPress, upload zip archives with issues or add them through a form and keep track of your issues and their details. Available shortcodes: Using shortcodes: [showIssues], [showMyIssues], [showIssue], [showAddZipForm] and [showAddIssueForm]
-Version: 1.2
+Version: 1.2.2
 Author: open source BIM collective
 Author URI: http://opensourcebim.org
 Usage:
